@@ -16,13 +16,10 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   final TextEditingController purchaseDateController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
 
-  // List of equipment types for the dropdown
   final List<String> equipmentTypes = ['ordinateurs', 'imprimantes', 'serveurs', 'routeurs', 'PDA'];
 
-  // List of status options
   final List<String> equipmentStatuses = ['En cours d\'utilisation', 'En réparation', 'disponible'];
 
-  // Selected equipment type and status
   String? selectedEquipmentType;
   String? selectedEquipmentStatus;
 
@@ -33,14 +30,14 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
       User? currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser != null && selectedEquipmentType != null && selectedEquipmentStatus != null) {
-        // Gather data from the form
+
         Map<String, dynamic> equipmentData = {
           'serial_number': serialNumberController.text,
           'model': modelController.text,
           'purchase_date': purchaseDateController.text,
           'location': locationController.text,
           'type': selectedEquipmentType,
-          'status': selectedEquipmentStatus,  // Include the selected equipment status
+          'status': selectedEquipmentStatus,  
           'added_by': currentUser.uid,
           'timestamp': FieldValue.serverTimestamp(),
         };
@@ -83,7 +80,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context); // Navigate back to the Admin page
+            Navigator.pop(context); 
           },
         ),
       ),
@@ -151,7 +148,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                 },
               ),
               const SizedBox(height: 20),
-              // Equipment Type Dropdown Field
+
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(
                   hintText: "Select Equipment Type",
@@ -183,7 +180,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                 },
               ),
               const SizedBox(height: 20),
-              // Equipment Status Dropdown Field
+
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(
                   hintText: "Select Equipment Status",
@@ -215,7 +212,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                 },
               ),
               const SizedBox(height: 20),
-              // Purchase Date Field
+
               TextFormField(
                 controller: purchaseDateController,
                 decoration: InputDecoration(
@@ -236,7 +233,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                 },
               ),
               const SizedBox(height: 20),
-              // Location Field
+
               TextFormField(
                 controller: locationController,
                 decoration: InputDecoration(
