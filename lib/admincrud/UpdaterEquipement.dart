@@ -44,6 +44,9 @@ class _UpdaterEquipmentState extends State<UpdaterEquipment> {
                     ),
                   );
                 },
+                onDeletePressed: () {
+                  _showDeleteConfirmation(context, equipment.id);
+                },
               );
             },
           );
@@ -51,16 +54,52 @@ class _UpdaterEquipmentState extends State<UpdaterEquipment> {
       ),
     );
   }
+
+  void _showDeleteConfirmation(BuildContext context, String equipmentId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Confirm Deletion"),
+          content: const Text("Are you sure you want to delete this equipment?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                FirebaseFirestore.instance.collection('equipment').doc(equipmentId).delete().then((_) {
+                  Navigator.of(context).pop(); // Close the dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Equipment deleted successfully!")),
+                  );
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // coloradmin1 red for delete
+              ),
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class EquipmentCard extends StatelessWidget {
   final QueryDocumentSnapshot equipment;
   final VoidCallback onUpdatePressed;
+  final VoidCallback onDeletePressed;
 
   const EquipmentCard({
     Key? key,
     required this.equipment,
     required this.onUpdatePressed,
+    required this.onDeletePressed,
   }) : super(key: key);
 
   @override
@@ -116,6 +155,18 @@ class EquipmentCard extends StatelessWidget {
                   label: const Text("Update"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: onDeletePressed,
+                  icon: const Icon(Icons.delete),
+                  label: const Text("Delete"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.withOpacity(0.1), // Red delete button
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),

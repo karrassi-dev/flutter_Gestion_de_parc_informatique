@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // For formatting the date
 
 class RegisterEquipment extends StatefulWidget {
   const RegisterEquipment({super.key});
@@ -70,6 +71,20 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
       selectedEquipmentType = null;
       selectedEquipmentStatus = null;
     });
+  }
+
+  Future<void> _selectPurchaseDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (pickedDate != null) {
+      setState(() {
+        purchaseDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+      });
+    }
   }
 
   @override
@@ -213,10 +228,12 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
               ),
               const SizedBox(height: 20),
 
-              TextFormField(
+              // Purchase Date Field with Date Picker
+              TextField(
                 controller: purchaseDateController,
+                readOnly: true,
                 decoration: InputDecoration(
-                  hintText: "Purchase Date (YYYY-MM-DD)",
+                  hintText: "Purchase Date",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
                     borderSide: BorderSide.none,
@@ -225,12 +242,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                   filled: true,
                   prefixIcon: const Icon(Icons.date_range),
                 ),
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return "Purchase Date cannot be empty";
-                  }
-                  return null;
-                },
+                onTap: () => _selectPurchaseDate(context),
               ),
               const SizedBox(height: 20),
 
