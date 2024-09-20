@@ -87,9 +87,9 @@ class UpdateSpecificEquipmentPage extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              buildTextField("Start Time", startTimeController),
-              buildTextField("End Time", endTimeController),
-              buildTextField("Email", emailController),
+              buildTextField("Date de debut", startTimeController),
+              buildTextField("Date de fin", endTimeController),
+              buildTextField("address de messagerie", emailController),
               buildTextField("Name", nameController),
               buildTextField("Site", siteController),
               buildDropdownField("Type", typeController, typeOptions),

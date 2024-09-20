@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import './employe_actions/ViewEquipmentDetailsPage.dart'; // Create this page to show equipment details
+import 'package:firebase_auth/firebase_auth.dart';
+import './employe_actions/ViewEquipmentDetailsPage.dart'; 
+import './employe_actions/RequestsPage.dart'; 
+import './employe_actions/EmployeRequestPage.dart'; 
+import 'login.dart'; 
 
 class Employe extends StatelessWidget {
   final CollectionReference equipmentCollection =
@@ -12,6 +16,25 @@ class Employe extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Equipment List"),
         backgroundColor: Colors.deepPurple,
+        actions: [
+          IconButton(
+            onPressed: () => _logout(context), 
+            icon: const Icon(Icons.logout),
+            tooltip: "Logout",
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EmployRequestsPage()
+                ),
+              );
+            },
+            icon: const Icon(Icons.list),
+            tooltip: "View My Requests",
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: equipmentCollection.snapshots(),
@@ -63,17 +86,45 @@ class Employe extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                // Logic to handle equipment request
+                _requestEquipment(equipment);
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Request submitted!")),
                 );
-                Navigator.of(context).pop(); // Close dialog
               },
               child: const Text("Request"),
             ),
           ],
         );
       },
+    );
+  }
+
+  Future<void> _requestEquipment(QueryDocumentSnapshot equipment) async {
+    String? userEmail = FirebaseAuth.instance.currentUser?.email;
+    FirebaseFirestore.instance.collection('equipment_requests').add({
+      'equipmentId': equipment.id,
+      'equipmentName': equipment['name'],
+      'requester': userEmail,
+      'status': 'Pending', // Set initial status
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    await _sendNotificationToAdmin(equipment['name']);
+  }
+
+  Future<void> _sendNotificationToAdmin(String equipmentName) async {
+    // Implement FCM push notification logic here
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Logged out successfully!")),
     );
   }
 }

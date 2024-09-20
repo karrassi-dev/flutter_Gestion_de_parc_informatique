@@ -1,8 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:badges/badges.dart' as badges;
 import 'admincrud/RegisterEquipment.dart';
-import 'admincrud/UpdaterEquipement.dart'; 
+import 'admincrud/UpdaterEquipement.dart';
 import 'login.dart';
+import 'employe_actions/RequestsPage.dart';
 
 class Admin extends StatefulWidget {
   const Admin({super.key});
@@ -12,6 +15,25 @@ class Admin extends StatefulWidget {
 }
 
 class _AdminState extends State<Admin> {
+  int unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUnreadNotificationsCount();
+  }
+
+  Future<void> _fetchUnreadNotificationsCount() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('equipment_requests')
+        .where('isRead', isEqualTo: false) // Assuming you add this field for request notifications
+        .get();
+
+    setState(() {
+      unreadCount = snapshot.docs.length;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,6 +46,41 @@ class _AdminState extends State<Admin> {
         ),
         backgroundColor: Colors.deepPurple,
         actions: [
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('equipment_requests')
+                .where('isRead', isEqualTo: false)
+                .snapshots(),
+            builder: (context, snapshot) {
+              int unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+              return IconButton(
+                icon: badges.Badge(
+                  badgeStyle: badges.BadgeStyle(
+                    badgeColor: Colors.red,
+                    borderRadius: BorderRadius.circular(8),
+                    padding: const EdgeInsets.all(5),
+                  ),
+                  badgeAnimation: const badges.BadgeAnimation.scale(),
+                  badgeContent: Text(
+                    unreadCount.toString(),
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  showBadge: unreadCount > 0,
+                  child: const Icon(Icons.notifications),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RequestsPage(),
+                    ),
+                  );
+                },
+                tooltip: "Notifications",
+              );
+            },
+          ),
           IconButton(
             onPressed: () {
               logout(context);
@@ -53,7 +110,6 @@ class _AdminState extends State<Admin> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              // Button for Registering Equipment
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -80,7 +136,6 @@ class _AdminState extends State<Admin> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Button for Updating Equipment
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -114,7 +169,6 @@ class _AdminState extends State<Admin> {
   }
 
   Future<void> logout(BuildContext context) async {
-    CircularProgressIndicator();
     await FirebaseAuth.instance.signOut();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
