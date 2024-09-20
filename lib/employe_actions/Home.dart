@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import './employe_actions/ViewEquipmentDetailsPage.dart'; // Create this page to show equipment details
 
-class Employe extends StatelessWidget {
+class Home extends StatelessWidget {
   final CollectionReference equipmentCollection =
       FirebaseFirestore.instance.collection('equipment');
 
@@ -31,15 +30,8 @@ class Employe extends StatelessWidget {
               return EquipmentCard(
                 equipment: equipment,
                 onRequestPressed: () {
+                  // Handle equipment request logic
                   _showRequestDialog(context, equipment);
-                },
-                onViewDetailsPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ViewEquipmentDetailsPage(equipment),
-                    ),
-                  );
                 },
               );
             },
@@ -81,13 +73,11 @@ class Employe extends StatelessWidget {
 class EquipmentCard extends StatelessWidget {
   final QueryDocumentSnapshot equipment;
   final VoidCallback onRequestPressed;
-  final VoidCallback onViewDetailsPressed;
 
   const EquipmentCard({
     Key? key,
     required this.equipment,
     required this.onRequestPressed,
-    required this.onViewDetailsPressed,
   }) : super(key: key);
 
   @override
@@ -127,18 +117,7 @@ class EquipmentCard extends StatelessWidget {
                   onPressed: onRequestPressed,
                   child: const Text("Request"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple.withOpacity(0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: onViewDetailsPressed,
-                  child: const Text("View Details"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple.withOpacity(0.1),
+                    backgroundColor: Colors.deepPurple,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),

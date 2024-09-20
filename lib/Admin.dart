@@ -90,7 +90,7 @@ class _AdminState extends State<Admin> {
                 },
                 icon: const Icon(Icons.update, color: Colors.white),
                 label: const Text(
-                  "Update & Delete Equipment",
+                  "Update & Del Equipment",
                   style: TextStyle(color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(

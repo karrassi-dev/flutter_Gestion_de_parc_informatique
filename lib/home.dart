@@ -19,7 +19,7 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              "Please press the subscribe button for more videos",
+              "",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
               color: Colors.red,
               onPressed: () {},
               child: Text(
-                'Subscribe',
+                '',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
+import 'UpdateSpecificEquipmentPage.dart';
+import 'ViewEquipmentDetailsPage.dart';
 class UpdaterEquipment extends StatefulWidget {
   @override
   _UpdaterEquipmentState createState() => _UpdaterEquipmentState();
@@ -47,6 +48,15 @@ class _UpdaterEquipmentState extends State<UpdaterEquipment> {
                 onDeletePressed: () {
                   _showDeleteConfirmation(context, equipment.id);
                 },
+
+                onViewDetailsPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ViewEquipmentDetailsPage(equipment),
+          ),
+        );
+      },
               );
             },
           );
@@ -79,7 +89,7 @@ class _UpdaterEquipmentState extends State<UpdaterEquipment> {
                 });
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // coloradmin1 red for delete
+                backgroundColor: Colors.red, // Red for delete
               ),
               child: const Text("Delete"),
             ),
@@ -94,21 +104,20 @@ class EquipmentCard extends StatelessWidget {
   final QueryDocumentSnapshot equipment;
   final VoidCallback onUpdatePressed;
   final VoidCallback onDeletePressed;
+  final VoidCallback onViewDetailsPressed; // New callback
+
 
   const EquipmentCard({
     Key? key,
     required this.equipment,
     required this.onUpdatePressed,
     required this.onDeletePressed,
+    required this.onViewDetailsPressed,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Safely check if the 'status' field exists
     final Map<String, dynamic>? equipmentData = equipment.data() as Map<String, dynamic>?;
-    final String status = equipmentData != null && equipmentData.containsKey('status')
-        ? equipmentData['status']
-        : 'Unknown';
 
     return Card(
       elevation: 3,
@@ -122,37 +131,37 @@ class EquipmentCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Model: ${equipment['model']}",
+              "Name: ${equipmentData?['name']}",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              "Serial Number: ${equipment['serial_number']}",
+              "Email: ${equipmentData?['email']}",
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              "Type: ${equipment['type']}",
+              "Type: ${equipmentData?['type']}",
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              "Location: ${equipment['location']}",
+              "Brand: ${equipmentData?['brand']}",
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              "Status: $status", // Display the status with a fallback
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              "Serial Number: ${equipmentData?['serial_number']}",
+              style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 ElevatedButton.icon(
-                  onPressed: onUpdatePressed,
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Update"),
+                  onPressed: onViewDetailsPressed,
+                  icon: const Icon(Icons.visibility),
+                  label: const Text("details"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.withOpacity(0.1),
                     shape: RoundedRectangleBorder(
@@ -160,122 +169,31 @@ class EquipmentCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 6),
+                ElevatedButton.icon(
+                  onPressed: onUpdatePressed,
+                  icon: const Icon(Icons.edit),
+                  label: const Text("modifier"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 ElevatedButton.icon(
                   onPressed: onDeletePressed,
                   icon: const Icon(Icons.delete),
-                  label: const Text("Delete"),
+                  label: const Text("supp"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.withOpacity(0.1), // Red delete button
+                    backgroundColor: Colors.red.withOpacity(0.1), // Red for delete
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class UpdateSpecificEquipmentPage extends StatelessWidget {
-  final QueryDocumentSnapshot equipment;
-
-  const UpdateSpecificEquipmentPage(this.equipment, {Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final TextEditingController modelController = TextEditingController(text: equipment['model']);
-    final TextEditingController serialNumberController = TextEditingController(text: equipment['serial_number']);
-    final TextEditingController locationController = TextEditingController(text: equipment['location']);
-    
-    final List<String> statusOptions = ['En cours d\'utilisation', 'En réparation', 'disponible'];
-    
-    // Safely check if the 'status' field exists
-    final Map<String, dynamic>? equipmentData = equipment.data() as Map<String, dynamic>?;
-    String? selectedStatus = equipmentData != null && equipmentData.containsKey('status')
-        ? equipmentData['status']
-        : statusOptions[0];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Update Equipment"),
-        backgroundColor: Colors.deepPurple,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: modelController,
-              decoration: const InputDecoration(
-                labelText: "Model",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: serialNumberController,
-              decoration: const InputDecoration(
-                labelText: "Serial Number",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: locationController,
-              decoration: const InputDecoration(
-                labelText: "Location",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: selectedStatus,
-              decoration: const InputDecoration(
-                labelText: "Status",
-                border: OutlineInputBorder(),
-              ),
-              items: statusOptions.map((status) {
-                return DropdownMenuItem(
-                  value: status,
-                  child: Text(status),
-                );
-              }).toList(),
-              onChanged: (newValue) {
-                selectedStatus = newValue;
-              },
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () {
-                FirebaseFirestore.instance
-                    .collection('equipment')
-                    .doc(equipment.id)
-                    .update({
-                      'model': modelController.text,
-                      'serial_number': serialNumberController.text,
-                      'location': locationController.text,
-                      'status': selectedStatus,
-                    })
-                    .then((value) {
-                      Navigator.pop(context); // Return to the previous screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Equipment updated successfully!")),
-                      );
-                    });
-              },
-              child: const Text("Save Changes"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple.withOpacity(0.1),
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
             ),
           ],
         ),

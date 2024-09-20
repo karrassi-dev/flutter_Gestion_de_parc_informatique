@@ -194,7 +194,7 @@ class _RegisterState extends State<Register> {
                             )
                           : const Text(
                               "Register",
-                              style: TextStyle(fontSize: 20),
+                              style: TextStyle(fontSize: 20,color: Colors.black),
                             ),
                       style: ElevatedButton.styleFrom(
                         shape: const StadiumBorder(),
