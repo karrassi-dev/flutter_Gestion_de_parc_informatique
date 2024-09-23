@@ -20,13 +20,14 @@ class _AdminState extends State<Admin> {
   @override
   void initState() {
     super.initState();
-    _fetchUnreadNotificationsCount();
+    _fetchUnreadNotificationsCount(); 
   }
+
 
   Future<void> _fetchUnreadNotificationsCount() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('equipment_requests')
-        .where('isRead', isEqualTo: false) // Assuming you add this field for request notifications
+        .where('isRead', isEqualTo: false) 
         .get();
 
     setState(() {
@@ -46,12 +47,15 @@ class _AdminState extends State<Admin> {
         ),
         backgroundColor: Colors.deepPurple,
         actions: [
+          
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('equipment_requests')
-                .where('isRead', isEqualTo: false)
+                .where('isRead', isEqualTo: false) 
                 .snapshots(),
             builder: (context, snapshot) {
+              
+
               int unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
 
               return IconButton(
@@ -66,7 +70,7 @@ class _AdminState extends State<Admin> {
                     unreadCount.toString(),
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
-                  showBadge: unreadCount > 0,
+                  showBadge: unreadCount > 0, 
                   child: const Icon(Icons.notifications),
                 ),
                 onPressed: () {

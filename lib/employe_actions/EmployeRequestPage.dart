@@ -15,7 +15,7 @@ class EmployRequestsPage extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('equipment_requests')
-            .where('requester', isEqualTo: userEmail) // Filter by current user email
+            .where('requester', isEqualTo: userEmail) 
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

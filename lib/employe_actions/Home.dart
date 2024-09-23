@@ -30,7 +30,7 @@ class Home extends StatelessWidget {
               return EquipmentCard(
                 equipment: equipment,
                 onRequestPressed: () {
-                  // Handle equipment request logic
+
                   _showRequestDialog(context, equipment);
                 },
               );
@@ -55,7 +55,7 @@ class Home extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                // Logic to handle equipment request
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Request submitted!")),
                 );

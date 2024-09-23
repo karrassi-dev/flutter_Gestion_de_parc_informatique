@@ -47,10 +47,10 @@ class _LoginPageState extends State<LoginPage> {
     return const Column(
       children: [
         Text(
-          "Welcome Back",
+          "Bienvenue",
           style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
         ),
-        Text("Enter your credentials to login"),
+        Text("Entrez vos identifiants pour vous connecter"),
       ],
     );
   }

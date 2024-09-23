@@ -39,10 +39,8 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   int currentPageIndex = 0;
   bool _isWirelessMouse = false;
 
-  // Firebase equipment collection reference
   final CollectionReference equipmentCollection = FirebaseFirestore.instance.collection('equipment');
 
-  // Options for dropdowns
   final List<String> typeOptions = [
     'imprimante', 'avaya', 'point d’access', 'switch', 'DVR', 'TV', 
     'scanner', 'routeur', 'balanceur', 'standard téléphonique', 
@@ -226,7 +224,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
           controller: _pageController,
           physics: const NeverScrollableScrollPhysics(), // Disable swiping between pages
           children: [
-            // Page 1 - First 6 fields
+
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -246,7 +244,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
               ),
             ),
 
-            // Page 2 - Next 6 fields
+
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -266,7 +264,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
               ),
             ),
 
-            // Page 3 - Next 6 fields
+
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -286,7 +284,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
               ),
             ),
 
-            // Page 4 - Last fields and submit
+
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(

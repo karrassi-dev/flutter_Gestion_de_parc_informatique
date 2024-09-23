@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../admincrud/ViewEquipmentDetailsPage.dart';
+
 class RequestsPage extends StatefulWidget {
   @override
   _RequestsPageState createState() => _RequestsPageState();
@@ -18,7 +18,9 @@ class _RequestsPageState extends State<RequestsPage> {
         backgroundColor: Colors.deepPurple,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('equipment_requests').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('equipment_requests')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -31,10 +33,13 @@ class _RequestsPageState extends State<RequestsPage> {
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               final request = snapshot.data!.docs[index];
+              final isAccepted = request['status'] == 'accepted';
+              final requestData = request.data() as Map<String, dynamic>?; 
 
               return Card(
                 elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                margin:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -45,7 +50,8 @@ class _RequestsPageState extends State<RequestsPage> {
                     children: [
                       Text(
                         "Equipment: ${request['equipmentName']}",
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -62,36 +68,48 @@ class _RequestsPageState extends State<RequestsPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           ElevatedButton(
-  onPressed: () async {
-    try {
-      // Accept request and store admin email
-      await FirebaseFirestore.instance
-          .collection('equipment_requests')
-          .doc(request.id)
-          .update({
-            'status': 'accepted',
-            'acceptedBy': adminEmail, // Store the admin who accepted the request
-            'isRead': true // Mark as read
-          });
+                            onPressed: isAccepted
+                                ? null
+                                : () async {
+                                    try {
+                                      // Accept request and store admin email
+                                      await FirebaseFirestore.instance
+                                          .collection('equipment_requests')
+                                          .doc(request.id)
+                                          .update({
+                                        'status': 'accepted',
+                                        'acceptedBy': adminEmail,
+                                        'isRead': true,
+                                      });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Request accepted successfully!"),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to accept request: $e"),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  },
-  child: const Text("Accept"),
-),
+                                      setState(() {}); 
 
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              "Request accepted successfully!"),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              "Failed to accept request: $e"),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
+                                  },
+                            child: Text(isAccepted ? "Accepted" : "Accept"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isAccepted
+                                  ? Colors.green
+                                  : Colors.white, 
+                            ),
+                          ),
                           ElevatedButton(
                             onPressed: () async {
                               // Delete the request from Firestore
@@ -112,11 +130,16 @@ class _RequestsPageState extends State<RequestsPage> {
                                   content: SingleChildScrollView(
                                     child: ListBody(
                                       children: [
-                                        Text("Equipment: ${request['equipmentName']}"),
-                                        Text("Requested by: ${request['requester']}"),
-                                        Text("Timestamp: ${request['timestamp'].toDate().toLocal().toString()}"),
-                                        Text("Status: ${request['status'] ?? 'Pending'}"), // Default to 'Pending'
-                                        Text("Accepted By: ${request['acceptedBy'] ?? 'N/A'}"), // Show accepted admin
+                                        Text(
+                                            "Equipment: ${request['equipmentName']}"),
+                                        Text(
+                                            "Requested by: ${request['requester']}"),
+                                        Text(
+                                            "Timestamp: ${request['timestamp'].toDate().toLocal().toString()}"),
+                                        Text(
+                                            "Status: ${request['status'] ?? 'Pending'}"),
+                                        Text(
+                                            "Accepted By: ${requestData != null && requestData.containsKey('acceptedBy') ? request['acceptedBy'] : 'N/A'}"), 
                                       ],
                                     ),
                                   ),

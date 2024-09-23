@@ -106,7 +106,8 @@ class Employe extends StatelessWidget {
       'equipmentId': equipment.id,
       'equipmentName': equipment['name'],
       'requester': userEmail,
-      'status': 'Pending', // Set initial status
+      'status': 'Pending',
+      'isRead': false,  
       'timestamp': FieldValue.serverTimestamp(),
     });
 
@@ -114,7 +115,7 @@ class Employe extends StatelessWidget {
   }
 
   Future<void> _sendNotificationToAdmin(String equipmentName) async {
-    // Implement FCM push notification logic here
+    
   }
 
   Future<void> _logout(BuildContext context) async {
