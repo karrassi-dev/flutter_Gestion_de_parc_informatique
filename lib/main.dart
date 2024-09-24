@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; 
+import 'package:my_flutter_app/email_service.dart';
 
 import 'login.dart';
 import 'Admin.dart'; 
@@ -12,8 +14,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
+  // Load the .env file
 
-  await FirebaseMessaging.instance.subscribeToTopic("sample");
   runApp(MyApp());
 }
 
@@ -34,12 +36,10 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  
   Widget _handleAuthState() {
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-    
       return FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance
             .collection('users')
@@ -53,7 +53,6 @@ class _MyAppState extends State<MyApp> {
             return const Center(child: Text("Error loading user data")); 
           }
           if (snapshot.hasData) {
-            
             String? role = snapshot.data!.get('role');
 
             if (role == 'Admin') {
@@ -61,14 +60,13 @@ class _MyAppState extends State<MyApp> {
             } else if (role == 'employe') {
               return Employe(); 
             } else {
-              //return const Center(child: Text("Unknown role")); admin
+              // Handle unknown role if necessary
             }
           }
           return LoginPage(); 
         },
       );
     } else {
-      
       return LoginPage();
     }
   }

@@ -32,103 +32,132 @@ class _RequestsPageState extends State<RequestsPage> {
   }
 
   void _showAssignEquipmentDialog(String requestId, String utilisateur) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Assign Equipment"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Select equipment to assign:"),
-              const SizedBox(height: 10),
-              DropdownButton<String>(
-                hint: const Text("Select Equipment"),
-                value: selectedEquipment,
-                items: availableEquipment.map((DocumentSnapshot document) {
-                  final equipmentData = document.data() as Map<String, dynamic>;
-                  return DropdownMenuItem<String>(
-                    value: document.id, // The equipment ID
-                    child: Text(
-                      "${equipmentData['brand']} - ${equipmentData['reference']} (${equipmentData['type']})",
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedEquipment = value; // Set the selected equipment
-                  });
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              child: const Text("Cancel"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text("Assign"),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _assignEquipmentToRequest(requestId, utilisateur); // Assign the equipment
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Assign Equipment"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Select equipment to assign:"),
+            const SizedBox(height: 10),
+            DropdownButton<String>(
+              hint: const Text("Select Equipment"),
+              value: selectedEquipment,
+              items: availableEquipment.map((DocumentSnapshot document) {
+                final equipmentData = document.data() as Map<String, dynamic>;
+                return DropdownMenuItem<String>(
+                  value: document.id, // The equipment ID
+                  child: Text(
+                    "${equipmentData['brand']} - ${equipmentData['reference']} (${equipmentData['type']})",
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedEquipment = value; 
+                });
               },
             ),
           ],
-        );
-      },
-    );
-  }
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: const Text("Assign"),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              
+              // Assign equipment to request
+              await _assignEquipmentToRequest(requestId, utilisateur);
+
+              // Mark request as read in Firestore
+              await FirebaseFirestore.instance
+                  .collection('equipmentRequests')
+                  .doc(requestId)
+                  .update({
+                'isRead': true,
+              });
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   Future<void> _assignEquipmentToRequest(
-      String requestId, String utilisateur) async {
-    if (selectedEquipment == null) return; // Ensure an equipment is selected
+    String requestId, String utilisateur) async {
+  if (selectedEquipment == null) return; // Ensure an equipment is selected
 
-    try {
-      final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
-          .collection('equipment')
-          .doc(selectedEquipment)
-          .get();
+  try {
+    final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
+        .collection('equipment')
+        .doc(selectedEquipment)
+        .get();
 
-      final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
+    final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
 
-      await FirebaseFirestore.instance
-          .collection('equipmentRequests')
-          .doc(requestId)
-          .update({
-        'assignedEquipment': selectedEquipment, // Store the selected equipment ID
-        'assignedEquipmentDetails': {
-          'brand': equipmentData['brand'],
-          'reference': equipmentData['reference'],
-          'serial_number': equipmentData['serial_number'],
-        },
-        'isAssigned': true, // Mark the request as assigned
-      });
+    // Fetch the current user (previous user of the equipment, if any)
+    final String previousUser = equipmentData['user'] ?? 'No previous user';
 
-      await FirebaseFirestore.instance
-          .collection('equipment')
-          .doc(selectedEquipment)
-          .update({
-        'user': utilisateur,
-      });
+    // Assign the equipment to the new user
+    await FirebaseFirestore.instance
+        .collection('equipmentRequests')
+        .doc(requestId)
+        .update({
+      'assignedEquipment': selectedEquipment, 
+      'assignedEquipmentDetails': {
+        'brand': equipmentData['brand'],
+        'reference': equipmentData['reference'],
+        'serial_number': equipmentData['serial_number'],
+      },
+      'isAssigned': true, 
+    });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Equipment assigned successfully!")),
-      );
+    await FirebaseFirestore.instance
+        .collection('equipment')
+        .doc(selectedEquipment)
+        .update({
+      'user': utilisateur, // Update the user of the equipment
+    });
 
-      // Clear the selected equipment after assignment
-      setState(() {
-        selectedEquipment = null;
-      });
-    } catch (e) {
-      print("Error assigning equipment: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error assigning equipment: $e")),
-      );
-    }
+    // Get current date and time for the assignment
+    Timestamp now = Timestamp.now();
+
+    // Add the history entry to the equipmentHistory collection
+    await FirebaseFirestore.instance.collection('equipmentHistory').add({
+      'equipmentId': selectedEquipment, // Equipment ID
+      'assignedBy': adminEmail, 
+      'assignedTo': utilisateur, 
+      'assignmentDate': now, 
+      'previousUser': previousUser, 
+      'durationInDays': 0, 
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Equipment assigned successfully!")),
+    );
+
+    // Clear the selected equipment after assignment
+    setState(() {
+      selectedEquipment = null;
+    });
+  } catch (e) {
+    print("Error assigning equipment: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error assigning equipment: $e")),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +209,16 @@ class _RequestsPageState extends State<RequestsPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
+                        "Utilisateur: ${requestData['utilisateur']}",
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Site/Agence: ${requestData['site']}",
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
                         "Department: ${requestData['department']}",
                         style: const TextStyle(fontSize: 16),
                       ),
@@ -223,6 +262,10 @@ class _RequestsPageState extends State<RequestsPage> {
                                             "Equipment: ${requestData['equipmentType']}"),
                                         Text(
                                             "Requested by: ${requestData['requester']}"),
+                                        Text(
+                                            "Utilisateur: ${requestData['utilisateur']}"),
+                                        Text(
+                                            "Site/Agence: ${requestData['site']}"),
                                         Text(
                                             "Department: ${requestData['department']}"),
                                         Text(

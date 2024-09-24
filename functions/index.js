@@ -1,33 +1,40 @@
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const nodemailer = require('nodemailer');
+
 admin.initializeApp();
 
-exports.sendRequestNotification = functions.firestore
-  .document('equipment_requests/{requestId}')
+// Configure the Gmail SMTP transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'karrassihamza0508@gmail.com', // Your Gmail address
+    pass: 'ejuu ezyn zapq ribj', // Your Gmail password or App Password
+  },
+});
+
+exports.sendEmailNotification = functions.firestore
+  .document('equipmentRequests/{requestId}')
   .onCreate(async (snap, context) => {
     const requestData = snap.data();
 
-    // Define the notification content
-    const payload = {
-      notification: {
-        title: 'New Equipment Request',
-        body: `${requestData.requester} has requested ${requestData.equipmentName}`,
-      },
+    const mailOptions = {
+      from: 'your-email@gmail.com', // Your Gmail address
+      to: 'karrassihamza0508@gmail.com', // Admin email address
+      subject: 'New Equipment Request',
+      text: `New equipment request from: ${requestData.name}\n` +
+            `Email: ${requestData.email}\n` +
+            `Equipment Type: ${requestData.equipmentType}\n` +
+            `Utilisateur: ${requestData.utilisateur}\n` +
+            `Department: ${requestData.department}\n` +
+            `Additional Details: ${requestData.additionalDetails}\n` +
+            `Request Date: ${requestData.requestDate}`,
     };
 
-    // Send the notification to admin (assuming admin is subscribed to a topic)
     try {
-      await admin.messaging().sendToTopic('adminNotifications', payload);
-      console.log('Notification sent successfully');
+      await transporter.sendMail(mailOptions);
+      console.log('Email sent successfully');
     } catch (error) {
-      console.log('Error sending notification:', error);
+      console.error('Error sending email:', error);
     }
-
-    // Optionally, save the notification in Firestore
-    await admin.firestore().collection('notifications').add({
-      title: payload.notification.title,
-      body: payload.notification.body,
-      isRead: false,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    });
   });

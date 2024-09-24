@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../email_service.dart'; // Adjust the path as necessary
 
 class EmployRequestsPage extends StatefulWidget {
   @override
@@ -15,6 +16,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
   String currentEmail = "";
   String equipmentType = "Scanner"; // Default value
   String department = "DOSI"; // Default value
+  String site = 'Agence Oujda'; // Default value for site/agence
   String utilisateur = "";
   String additionalDetails = "";
   bool isLoading = true;
@@ -59,30 +61,92 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
     }
   }
 
-  void submitRequest() {
-    if (_formKey.currentState!.validate()) {
+  // Function to show a loader dialog
+  void showLoaderDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text("Submitting request...", style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-      FirebaseFirestore.instance.collection('equipmentRequests').add({
+  void hideLoaderDialog(BuildContext context) {
+    Navigator.of(context).pop();
+  }
+
+  Future<void> submitRequest() async {
+    if (_formKey.currentState!.validate()) {
+      // Show loader when submitting 
+      showLoaderDialog(context);
+
+      // Add Firestore
+      await FirebaseFirestore.instance.collection('equipmentRequests').add({
         'name': currentUserName,
         'email': currentEmail,
         'equipmentType': equipmentType,
         'utilisateur': utilisateur,
         'department': department,
+        'site': site,  
         'additionalDetails': additionalDetails,
-        'requester': currentEmail, 
-        'isRead': false, 
-        'status': 'Pending', 
+        'requester': currentEmail,
+        'isRead': false,
+        'status': 'Pending',
         'requestDate': DateTime.now(),
       });
 
+      // Fetch all admin users
+      QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'Admin')
+          .get();
+
+      List<String> adminEmails = adminSnapshot.docs
+          .map((doc) => doc['email'] as String)
+          .toList();
+
+      // Send an email to each admin with the request details
+      for (String adminEmail in adminEmails) {
+        await Email_Service.sendEmail(
+          adminEmail,  // Send email to each admin
+          'New Equipment Request',  // Email subject
+          'A new equipment request has been made by $currentUserName ($currentEmail) for $equipmentType.\n'
+          'User: $utilisateur\n'
+          'Department: $department\n'
+          'Site/Agence: $site\n'
+          'Additional Details: $additionalDetails\n'
+        );
+      }
+
+      hideLoaderDialog(context);
+
+      // Display a success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Request Submitted Successfully")),
       );
 
-
+      // Reset the form
       _formKey.currentState!.reset();
       setState(() {
-        additionalDetails = ""; 
+        additionalDetails = "";
       });
     }
   }
@@ -124,7 +188,8 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                         DropdownButtonFormField<String>(
                           value: equipmentType,
                           items: [
-                            'Imprimante', 'Avaya', 'Point d’access', 'Switch', 'DVR', 'TV', 'Scanner', 'Routeur', 'Balanceur', 'Standard Téléphonique', 'Data Show', 'Desktop', 'Laptop'
+                            'Imprimante', 'Avaya', 'Point d’access', 'Switch', 'DVR', 'TV', 'Scanner', 
+                            'Routeur', 'Balanceur', 'Standard Téléphonique', 'Data Show', 'Desktop', 'Laptop'
                           ].map((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
@@ -167,7 +232,9 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                         DropdownButtonFormField<String>(
                           value: department,
                           items: [
-                            'Maintenance', 'Qualité', 'Administration', 'Commercial', 'Caisse', 'Chef d’agence', 'ADV', 'DOSI', 'DRH', 'Logistique', 'Contrôle de gestion', 'Moyens généraux', 'GRC', 'Production', 'Comptabilité', 'Achat', 'Audit'
+                            'Maintenance', 'Qualité', 'Administration', 'Commercial', 'Caisse', 'Chef d’agence',
+                            'ADV', 'DOSI', 'DRH', 'Logistique', 'Contrôle de gestion', 'Moyens généraux', 
+                            'GRC', 'Production', 'Comptabilité', 'Achat', 'Audit'
                           ].map((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
@@ -186,8 +253,35 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                         ),
                         const SizedBox(height: 20),
 
+                        // Site/Agence dropdown
+                        DropdownButtonFormField<String>(
+                          value: site,
+                          items: [
+                            'Agence Oujda', 'Agence Agadir', 'Agence Marrakech', 'Canal Food', 
+                            'Agence Beni Melal', 'Agence El Jadida', 'Agence Fes', 'Agence Tanger', 
+                            'BMZ', 'STLZ', 'Zine Céréales', 'Manafid Al Houboub', 'CALZ', 'LGMZL', 
+                            'LGSZ', 'LGMZB', 'LGMC', 'Savola', 'Siège'
+                          ].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              site = newValue!;
+                            });
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Site/Agence',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Additional Details text field
                         TextFormField(
-                          maxLines: 4,
+                          maxLines: 3,
                           decoration: InputDecoration(
                             labelText: 'Additional Details',
                             border: OutlineInputBorder(),
@@ -200,16 +294,16 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Submit request button
-                        Center(
+                        // Submit button
+                        SizedBox(
+                          width: double.infinity,
                           child: ElevatedButton(
                             onPressed: submitRequest,
-                            child: const Text("Submit Request", style: TextStyle(color: Colors.black),),
-                            
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.deepPurple,
-                              padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                              padding: EdgeInsets.all(15),
                             ),
+                            child: Text('Submit Request', style: TextStyle(fontSize: 18 , color: Colors.white)),
                           ),
                         ),
                       ],
