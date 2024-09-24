@@ -9,6 +9,126 @@ class RequestsPage extends StatefulWidget {
 
 class _RequestsPageState extends State<RequestsPage> {
   final String? adminEmail = FirebaseAuth.instance.currentUser?.email;
+  List<DocumentSnapshot> availableEquipment = [];
+  String? selectedEquipment;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAvailableEquipment();
+  }
+
+  Future<void> _fetchAvailableEquipment() async {
+    try {
+      final QuerySnapshot equipmentSnapshot =
+          await FirebaseFirestore.instance.collection('equipment').get();
+
+      setState(() {
+        availableEquipment = equipmentSnapshot.docs;
+      });
+    } catch (e) {
+      print("Error fetching equipment: $e");
+    }
+  }
+
+  void _showAssignEquipmentDialog(String requestId, String utilisateur) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Assign Equipment"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Select equipment to assign:"),
+              const SizedBox(height: 10),
+              DropdownButton<String>(
+                hint: const Text("Select Equipment"),
+                value: selectedEquipment,
+                items: availableEquipment.map((DocumentSnapshot document) {
+                  final equipmentData = document.data() as Map<String, dynamic>;
+                  return DropdownMenuItem<String>(
+                    value: document.id, // The equipment ID
+                    child: Text(
+                      "${equipmentData['brand']} - ${equipmentData['reference']} (${equipmentData['type']})",
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedEquipment = value; // Set the selected equipment
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text("Assign"),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _assignEquipmentToRequest(requestId, utilisateur); // Assign the equipment
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _assignEquipmentToRequest(
+      String requestId, String utilisateur) async {
+    if (selectedEquipment == null) return; // Ensure an equipment is selected
+
+    try {
+      final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
+          .collection('equipment')
+          .doc(selectedEquipment)
+          .get();
+
+      final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
+
+      await FirebaseFirestore.instance
+          .collection('equipmentRequests')
+          .doc(requestId)
+          .update({
+        'assignedEquipment': selectedEquipment, // Store the selected equipment ID
+        'assignedEquipmentDetails': {
+          'brand': equipmentData['brand'],
+          'reference': equipmentData['reference'],
+          'serial_number': equipmentData['serial_number'],
+        },
+        'isAssigned': true, // Mark the request as assigned
+      });
+
+      await FirebaseFirestore.instance
+          .collection('equipment')
+          .doc(selectedEquipment)
+          .update({
+        'user': utilisateur,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Equipment assigned successfully!")),
+      );
+
+      // Clear the selected equipment after assignment
+      setState(() {
+        selectedEquipment = null;
+      });
+    } catch (e) {
+      print("Error assigning equipment: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error assigning equipment: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +139,8 @@ class _RequestsPageState extends State<RequestsPage> {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection('equipment_requests')
+            .collection('equipmentRequests')
+            .orderBy('requestDate', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -33,8 +154,7 @@ class _RequestsPageState extends State<RequestsPage> {
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               final request = snapshot.data!.docs[index];
-              final isAccepted = request['status'] == 'accepted';
-              final requestData = request.data() as Map<String, dynamic>?; 
+              final requestData = request.data() as Map<String, dynamic>;
 
               return Card(
                 elevation: 3,
@@ -49,18 +169,23 @@ class _RequestsPageState extends State<RequestsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Equipment: ${request['equipmentName']}",
+                        "Equipment Type: ${requestData['equipmentType']}",
                         style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Requested by: ${request['requester']}",
+                        "Requested by: ${requestData['requester']}",
                         style: const TextStyle(fontSize: 16),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Timestamp: ${request['timestamp'].toDate().toLocal().toString()}",
+                        "Department: ${requestData['department']}",
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Request Date: ${requestData['requestDate'].toDate().toLocal().toString()}",
                         style: const TextStyle(fontSize: 14),
                       ),
                       const SizedBox(height: 10),
@@ -68,61 +193,25 @@ class _RequestsPageState extends State<RequestsPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           ElevatedButton(
-                            onPressed: isAccepted
-                                ? null
-                                : () async {
-                                    try {
-                                      // Accept request and store admin email
-                                      await FirebaseFirestore.instance
-                                          .collection('equipment_requests')
-                                          .doc(request.id)
-                                          .update({
-                                        'status': 'accepted',
-                                        'acceptedBy': adminEmail,
-                                        'isRead': true,
-                                      });
-
-                                      setState(() {}); 
-
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              "Request accepted successfully!"),
-                                          duration: Duration(seconds: 2),
-                                        ),
-                                      );
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                              "Failed to accept request: $e"),
-                                          duration: Duration(seconds: 2),
-                                        ),
-                                      );
-                                    }
+                            onPressed: requestData['isAssigned'] == true
+                                ? null // Disable if already assigned
+                                : () {
+                                    _showAssignEquipmentDialog(
+                                      request.id,
+                                      requestData['utilisateur'],
+                                    );
                                   },
-                            child: Text(isAccepted ? "Accepted" : "Accept"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isAccepted
-                                  ? Colors.green
-                                  : Colors.white, 
-                            ),
+                            child: const Text("Affecter Equipment"),
                           ),
                           ElevatedButton(
                             onPressed: () async {
-                              // Delete the request from Firestore
                               await FirebaseFirestore.instance
-                                  .collection('equipment_requests')
+                                  .collection('equipmentRequests')
                                   .doc(request.id)
-                                  .delete(); // Delete from Firestore
-                            },
-                            child: const Text("Delete"),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Show details in a dialog
+                                  .update({
+                                'isRead': true,
+                              });
+
                               showDialog(
                                 context: context,
                                 builder: (context) => AlertDialog(
@@ -131,15 +220,15 @@ class _RequestsPageState extends State<RequestsPage> {
                                     child: ListBody(
                                       children: [
                                         Text(
-                                            "Equipment: ${request['equipmentName']}"),
+                                            "Equipment: ${requestData['equipmentType']}"),
                                         Text(
-                                            "Requested by: ${request['requester']}"),
+                                            "Requested by: ${requestData['requester']}"),
                                         Text(
-                                            "Timestamp: ${request['timestamp'].toDate().toLocal().toString()}"),
+                                            "Department: ${requestData['department']}"),
                                         Text(
-                                            "Status: ${request['status'] ?? 'Pending'}"),
+                                            "Request Date: ${requestData['requestDate'].toDate().toLocal().toString()}"),
                                         Text(
-                                            "Accepted By: ${requestData != null && requestData.containsKey('acceptedBy') ? request['acceptedBy'] : 'N/A'}"), 
+                                            "Status: ${requestData['status'] ?? 'Pending'}"),
                                       ],
                                     ),
                                   ),

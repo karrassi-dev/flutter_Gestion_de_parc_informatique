@@ -15,23 +15,22 @@ class Admin extends StatefulWidget {
 }
 
 class _AdminState extends State<Admin> {
-  int unreadCount = 0;
+  int unreadCount = 0; 
 
   @override
   void initState() {
     super.initState();
-    _fetchUnreadNotificationsCount(); 
+    _fetchUnreadNotificationsCount();
   }
-
 
   Future<void> _fetchUnreadNotificationsCount() async {
     final snapshot = await FirebaseFirestore.instance
-        .collection('equipment_requests')
+        .collection('equipmentRequests')
         .where('isRead', isEqualTo: false) 
         .get();
 
     setState(() {
-      unreadCount = snapshot.docs.length;
+      unreadCount = snapshot.docs.length; 
     });
   }
 
@@ -47,16 +46,16 @@ class _AdminState extends State<Admin> {
         ),
         backgroundColor: Colors.deepPurple,
         actions: [
-          
+
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
-                .collection('equipment_requests')
+                .collection('equipmentRequests')
                 .where('isRead', isEqualTo: false) 
                 .snapshots(),
             builder: (context, snapshot) {
-              
-
-              int unreadCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+              if (snapshot.hasData) {
+                unreadCount = snapshot.data!.docs.length; 
+              }
 
               return IconButton(
                 icon: badges.Badge(
@@ -67,13 +66,14 @@ class _AdminState extends State<Admin> {
                   ),
                   badgeAnimation: const badges.BadgeAnimation.scale(),
                   badgeContent: Text(
-                    unreadCount.toString(),
+                    unreadCount.toString(), 
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                   showBadge: unreadCount > 0, 
-                  child: const Icon(Icons.notifications),
+                  child: const Icon(Icons.notifications), 
                 ),
                 onPressed: () {
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -85,6 +85,7 @@ class _AdminState extends State<Admin> {
               );
             },
           ),
+          // Logout button
           IconButton(
             onPressed: () {
               logout(context);
@@ -172,6 +173,7 @@ class _AdminState extends State<Admin> {
     );
   }
 
+  // Function to log out and navigate to the login screen
   Future<void> logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     ScaffoldMessenger.of(context).showSnackBar(

@@ -12,6 +12,8 @@ class Register extends StatefulWidget {
 class _RegisterState extends State<Register> {
   final _formKey = GlobalKey<FormState>();
   final _auth = FirebaseAuth.instance;
+  final TextEditingController nameController = TextEditingController();
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmpassController = TextEditingController();
@@ -59,6 +61,26 @@ class _RegisterState extends State<Register> {
                     key: _formKey,
                     child: Column(
                       children: <Widget>[
+                        TextFormField(
+  controller: nameController,
+  decoration: InputDecoration(
+    hintText: "Name",
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    ),
+    fillColor: Colors.purple.withOpacity(0.1),
+    filled: true,
+    prefixIcon: const Icon(Icons.person),
+  ),
+  validator: (value) {
+    if (value!.isEmpty) {
+      return "Name cannot be empty";
+    }
+    return null;
+  },
+),
+const SizedBox(height: 20),
                         TextFormField(
                           controller: emailController,
                           decoration: InputDecoration(
@@ -271,23 +293,29 @@ class _RegisterState extends State<Register> {
   }
 
   Future<void> postDetailsToFirestore(String email, String rool) async {
-    FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
-    var user = _auth.currentUser;
-    await firebaseFirestore.collection('users').doc(user!.uid).set({
-      'email': email,
-      'role': rool,
-    });
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-    );
-  }
+  FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
+  var user = _auth.currentUser;
+
+  await firebaseFirestore.collection('users').doc(user!.uid).set({
+    'name': nameController.text, // Add the name field
+    'email': email,
+    'role': rool,
+  });
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => LoginPage()),
+  );
+}
+
 
   @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    confirmpassController.dispose();
-    super.dispose();
-  }
+void dispose() {
+  emailController.dispose();
+  passwordController.dispose();
+  confirmpassController.dispose();
+  nameController.dispose();  // Dispose the name controller
+  super.dispose();
+}
+
 }
