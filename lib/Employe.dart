@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import './employe_actions/EmployeRequestPage.dart';
-import 'login.dart';
+import 'package:my_flutter_app/login.dart';
+import 'employe_actions/MyRequestsPage.dart';
+
+import 'employe_actions/EmployeRequestPage.dart';
 
 class Employe extends StatelessWidget {
   final CollectionReference equipmentCollection =
@@ -19,6 +21,22 @@ class Employe extends StatelessWidget {
             onPressed: () => _logout(context), 
             icon: const Icon(Icons.logout),
             tooltip: "Logout",
+            color: Colors.white,
+
+          ),
+          // New IconButton to navigate to the requests page
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyRequestsPage(), // You will create this page
+                ),
+              );
+            },
+            icon: const Icon(Icons.list_alt),
+            tooltip: "My Requests",
+            color: Colors.white,
           ),
         ],
       ),

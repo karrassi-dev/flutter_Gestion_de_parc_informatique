@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../email_service.dart'; // Adjust the path as necessary
+import '../email_service.dart'; 
 
 class EmployRequestsPage extends StatefulWidget {
   @override
@@ -95,7 +95,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
 
   Future<void> submitRequest() async {
     if (_formKey.currentState!.validate()) {
-      // Show loader when submitting 
+      // loader when submitting 
       showLoaderDialog(context);
 
       // Add Firestore
@@ -113,7 +113,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
         'requestDate': DateTime.now(),
       });
 
-      // Fetch all admin users
+      // Fetch admin 
       QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .where('role', isEqualTo: 'Admin')
@@ -123,7 +123,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
           .map((doc) => doc['email'] as String)
           .toList();
 
-      // Send an email to each admin with the request details
+      // Send email to each admin 
       for (String adminEmail in adminEmails) {
         await Email_Service.sendEmail(
           adminEmail,  // Send email to each admin
@@ -138,7 +138,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
 
       hideLoaderDialog(context);
 
-      // Display a success message
+      // success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Request Submitted Successfully")),
       );
@@ -253,6 +253,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                         ),
                         const SizedBox(height: 20),
 
+
                         // Site/Agence dropdown
                         DropdownButtonFormField<String>(
                           value: site,
@@ -315,3 +316,4 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
     );
   }
 }
+

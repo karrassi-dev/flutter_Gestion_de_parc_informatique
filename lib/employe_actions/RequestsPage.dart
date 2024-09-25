@@ -31,133 +31,133 @@ class _RequestsPageState extends State<RequestsPage> {
     }
   }
 
-  void _showAssignEquipmentDialog(String requestId, String utilisateur) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text("Assign Equipment"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Select equipment to assign:"),
-            const SizedBox(height: 10),
-            DropdownButton<String>(
-              hint: const Text("Select Equipment"),
-              value: selectedEquipment,
-              items: availableEquipment.map((DocumentSnapshot document) {
-                final equipmentData = document.data() as Map<String, dynamic>;
-                return DropdownMenuItem<String>(
-                  value: document.id, // The equipment ID
-                  child: Text(
-                    "${equipmentData['brand']} - ${equipmentData['reference']} (${equipmentData['type']})",
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedEquipment = value; 
+  void _showAssignEquipmentDialog(String requestId, String utilisateur, String department) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Assign Equipment"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Select equipment to assign:"),
+              const SizedBox(height: 10),
+              DropdownButton<String>(
+                hint: const Text("Select Equipment"),
+                value: selectedEquipment,
+                items: availableEquipment.map((DocumentSnapshot document) {
+                  final equipmentData = document.data() as Map<String, dynamic>;
+                  return DropdownMenuItem<String>(
+                    value: document.id,
+                    child: Text(
+                      "${equipmentData['brand']} - ${equipmentData['reference']} (${equipmentData['type']})",
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedEquipment = value;
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text("Assign"),
+              onPressed: () async {
+                Navigator.of(context).pop();
+
+                // Assign equipment and update department
+                await _assignEquipmentToRequest(requestId, utilisateur, department);
+
+                // Mark request as read in Firestore
+                await FirebaseFirestore.instance
+                    .collection('equipmentRequests')
+                    .doc(requestId)
+                    .update({
+                  'isRead': true,
                 });
               },
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text("Cancel"),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: const Text("Assign"),
-            onPressed: () async {
-              Navigator.of(context).pop();
-              
-              // Assign equipment to request
-              await _assignEquipmentToRequest(requestId, utilisateur);
-
-              // Mark request as read in Firestore
-              await FirebaseFirestore.instance
-                  .collection('equipmentRequests')
-                  .doc(requestId)
-                  .update({
-                'isRead': true,
-              });
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
-
-  Future<void> _assignEquipmentToRequest(
-    String requestId, String utilisateur) async {
-  if (selectedEquipment == null) return; // Ensure an equipment is selected
-
-  try {
-    final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
-        .collection('equipment')
-        .doc(selectedEquipment)
-        .get();
-
-    final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
-
-    // Fetch the current user (previous user of the equipment, if any)
-    final String previousUser = equipmentData['user'] ?? 'No previous user';
-
-    // Assign the equipment to the new user
-    await FirebaseFirestore.instance
-        .collection('equipmentRequests')
-        .doc(requestId)
-        .update({
-      'assignedEquipment': selectedEquipment, 
-      'assignedEquipmentDetails': {
-        'brand': equipmentData['brand'],
-        'reference': equipmentData['reference'],
-        'serial_number': equipmentData['serial_number'],
+        );
       },
-      'isAssigned': true, 
-    });
-
-    await FirebaseFirestore.instance
-        .collection('equipment')
-        .doc(selectedEquipment)
-        .update({
-      'user': utilisateur, // Update the user of the equipment
-    });
-
-    // Get current date and time for the assignment
-    Timestamp now = Timestamp.now();
-
-    // Add the history entry to the equipmentHistory collection
-    await FirebaseFirestore.instance.collection('equipmentHistory').add({
-      'equipmentId': selectedEquipment, // Equipment ID
-      'assignedBy': adminEmail, 
-      'assignedTo': utilisateur, 
-      'assignmentDate': now, 
-      'previousUser': previousUser, 
-      'durationInDays': 0, 
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Equipment assigned successfully!")),
-    );
-
-    // Clear the selected equipment after assignment
-    setState(() {
-      selectedEquipment = null;
-    });
-  } catch (e) {
-    print("Error assigning equipment: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error assigning equipment: $e")),
     );
   }
-}
 
+  Future<void> _assignEquipmentToRequest(String requestId, String utilisateur, String department) async {
+    if (selectedEquipment == null) return; // Ensure an equipment is selected
+
+    try {
+      final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
+          .collection('equipment')
+          .doc(selectedEquipment)
+          .get();
+
+      final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
+
+      // Fetch the current user (previous user of the equipment, if any)
+      final String previousUser = equipmentData['user'] ?? 'No previous user';
+
+      // Assign the equipment to the new user
+      await FirebaseFirestore.instance
+          .collection('equipmentRequests')
+          .doc(requestId)
+          .update({
+        'assignedEquipment': selectedEquipment,
+        'assignedEquipmentDetails': {
+          'brand': equipmentData['brand'],
+          'reference': equipmentData['reference'],
+          'serial_number': equipmentData['serial_number'],
+        },
+        'isAssigned': true,
+      });
+
+      // Update the equipment document with the new user and department
+      await FirebaseFirestore.instance
+          .collection('equipment')
+          .doc(selectedEquipment)
+          .update({
+        'user': utilisateur,
+        'department': department, // Update department as well
+      });
+
+      // Get current date and time for the assignment
+      Timestamp now = Timestamp.now();
+
+      // Add assignment to equipment history
+      await FirebaseFirestore.instance.collection('equipmentHistory').add({
+        'equipmentId': selectedEquipment,
+        'assignedBy': adminEmail,
+        'assignedTo': utilisateur,
+        'assignmentDate': now,
+        'previousUser': previousUser,
+        'durationInDays': 0,
+        'requestId': requestId,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Equipment assigned successfully!")),
+      );
+
+      // Clear the selected equipment after assignment
+      setState(() {
+        selectedEquipment = null;
+      });
+    } catch (e) {
+      print("Error assigning equipment: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error assigning equipment: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -187,8 +187,7 @@ class _RequestsPageState extends State<RequestsPage> {
 
               return Card(
                 elevation: 3,
-                margin:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -233,11 +232,12 @@ class _RequestsPageState extends State<RequestsPage> {
                         children: [
                           ElevatedButton(
                             onPressed: requestData['isAssigned'] == true
-                                ? null // Disable if already assigned
+                                ? null // Disable if assigned
                                 : () {
                                     _showAssignEquipmentDialog(
                                       request.id,
                                       requestData['utilisateur'],
+                                      requestData['department'], // Pass department to dialog
                                     );
                                   },
                             child: const Text("Affecter Equipment"),

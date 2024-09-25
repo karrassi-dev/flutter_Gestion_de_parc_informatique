@@ -14,7 +14,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // Load the .env file
+  FirebaseMessaging.instance.requestPermission();
+
 
   runApp(MyApp());
 }
@@ -60,7 +61,7 @@ class _MyAppState extends State<MyApp> {
             } else if (role == 'employe') {
               return Employe(); 
             } else {
-              // Handle unknown role if necessary
+
             }
           }
           return LoginPage(); 
