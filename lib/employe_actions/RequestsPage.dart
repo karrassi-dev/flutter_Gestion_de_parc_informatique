@@ -50,7 +50,8 @@ class _RequestsPageState extends State<RequestsPage> {
                   return DropdownMenuItem<String>(
                     value: document.id,
                     child: Text(
-                      "${equipmentData['brand']} - ${equipmentData['reference']} (${equipmentData['type']})",
+                      // "${equipmentData['brand']} - ${equipmentData['reference']} (${equipmentData['type']})",
+                      "${equipmentData['brand']} - (${equipmentData['type']})",
                     ),
                   );
                 }).toList(),
@@ -74,10 +75,10 @@ class _RequestsPageState extends State<RequestsPage> {
               onPressed: () async {
                 Navigator.of(context).pop();
 
-                // Assign equipment and update department
+
                 await _assignEquipmentToRequest(requestId, utilisateur, department);
 
-                // Mark request as read in Firestore
+
                 await FirebaseFirestore.instance
                     .collection('equipmentRequests')
                     .doc(requestId)
@@ -92,72 +93,80 @@ class _RequestsPageState extends State<RequestsPage> {
     );
   }
 
-  Future<void> _assignEquipmentToRequest(String requestId, String utilisateur, String department) async {
-    if (selectedEquipment == null) return; // Ensure an equipment is selected
+Future<void> _assignEquipmentToRequest(String requestId, String utilisateur, String department) async {
+  if (selectedEquipment == null) return;
 
-    try {
-      final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
-          .collection('equipment')
-          .doc(selectedEquipment)
-          .get();
+  try {
+    // Fetch the selected equipment data
+    final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
+        .collection('equipment')
+        .doc(selectedEquipment)
+        .get();
 
-      final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
+    final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
 
-      // Fetch the current user (previous user of the equipment, if any)
-      final String previousUser = equipmentData['user'] ?? 'No previous user';
+    final String previousUser = equipmentData['user'] ?? 'No previous user';
 
-      // Assign the equipment to the new user
-      await FirebaseFirestore.instance
-          .collection('equipmentRequests')
-          .doc(requestId)
-          .update({
-        'assignedEquipment': selectedEquipment,
-        'assignedEquipmentDetails': {
-          'brand': equipmentData['brand'],
-          'reference': equipmentData['reference'],
-          'serial_number': equipmentData['serial_number'],
-        },
-        'isAssigned': true,
-      });
+    // Fetch the request data to get the site value
+    final DocumentSnapshot requestDoc = await FirebaseFirestore.instance
+        .collection('equipmentRequests')
+        .doc(requestId)
+        .get();
 
-      // Update the equipment document with the new user and department
-      await FirebaseFirestore.instance
-          .collection('equipment')
-          .doc(selectedEquipment)
-          .update({
-        'user': utilisateur,
-        'department': department, // Update department as well
-      });
+    final requestData = requestDoc.data() as Map<String, dynamic>;
+    final String site = requestData['site'];  // Get the 'site' from the request
 
-      // Get current date and time for the assignment
-      Timestamp now = Timestamp.now();
+    // Update the request with assigned equipment details
+    await FirebaseFirestore.instance
+        .collection('equipmentRequests')
+        .doc(requestId)
+        .update({
+      'assignedEquipment': selectedEquipment,
+      'assignedEquipmentDetails': {
+        'brand': equipmentData['brand'],
+        'reference': equipmentData['reference'],
+        'serial_number': equipmentData['serial_number'],
+      },
+      'isAssigned': true,
+    });
 
-      // Add assignment to equipment history
-      await FirebaseFirestore.instance.collection('equipmentHistory').add({
-        'equipmentId': selectedEquipment,
-        'assignedBy': adminEmail,
-        'assignedTo': utilisateur,
-        'assignmentDate': now,
-        'previousUser': previousUser,
-        'durationInDays': 0,
-        'requestId': requestId,
-      });
+    // Update the equipment with the new user, department, and site from the request
+    await FirebaseFirestore.instance
+        .collection('equipment')
+        .doc(selectedEquipment)
+        .update({
+      'user': utilisateur,
+      'department': department,
+      'site': site,  // Update the 'site' field in the equipment
+    });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Equipment assigned successfully!")),
-      );
+    Timestamp now = Timestamp.now();
 
-      // Clear the selected equipment after assignment
-      setState(() {
-        selectedEquipment = null;
-      });
-    } catch (e) {
-      print("Error assigning equipment: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error assigning equipment: $e")),
-      );
-    }
+    // Add entry to equipment history
+    await FirebaseFirestore.instance.collection('equipmentHistory').add({
+      'equipmentId': selectedEquipment,
+      'assignedBy': adminEmail,
+      'assignedTo': utilisateur,
+      'assignmentDate': now,
+      'previousUser': previousUser,
+      'durationInDays': 0,
+      'requestId': requestId,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Equipment assigned successfully!")),
+    );
+
+    setState(() {
+      selectedEquipment = null;
+    });
+  } catch (e) {
+    print("Error assigning equipment: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error assigning equipment: $e")),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {

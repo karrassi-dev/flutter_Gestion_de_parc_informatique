@@ -11,67 +11,67 @@ class UpdateSpecificEquipmentPage extends StatelessWidget {
     final equipmentData = equipment.data() as Map<String, dynamic>?; 
 
     final TextEditingController startTimeController = TextEditingController(
-      text: equipmentData?.containsKey('start_time') == true ? equipmentData!['start_time'] : 'N/A',
+      text: equipmentData?['start_time'] ?? '',
     );
     final TextEditingController endTimeController = TextEditingController(
-      text: equipmentData?.containsKey('end_time') == true ? equipmentData!['end_time'] : 'N/A',
+      text: equipmentData?['end_time'] ?? '',
     );
     final TextEditingController emailController = TextEditingController(
-      text: equipmentData?.containsKey('email') == true ? equipmentData!['email'] : 'N/A',
+      text: equipmentData?['email'] ?? '',
     );
     final TextEditingController nameController = TextEditingController(
-      text: equipmentData?.containsKey('name') == true ? equipmentData!['name'] : 'N/A',
+      text: equipmentData?['name'] ?? '',
     );
     final TextEditingController siteController = TextEditingController(
-      text: equipmentData?.containsKey('site') == true ? equipmentData!['site'] : 'N/A',
+      text: equipmentData?['site'] ?? '',
     );
     final TextEditingController typeController = TextEditingController(
-      text: equipmentData?.containsKey('type') == true ? equipmentData!['type'] : 'N/A',
+      text: equipmentData?['type'] ?? '',
     );
     final TextEditingController userController = TextEditingController(
-      text: equipmentData?.containsKey('user') == true ? equipmentData!['user'] : 'N/A',
+      text: equipmentData?['user'] ?? '',
     );
     final TextEditingController brandController = TextEditingController(
-      text: equipmentData?.containsKey('brand') == true ? equipmentData!['brand'] : 'N/A',
+      text: equipmentData?['brand'] ?? '',
     );
     final TextEditingController referenceController = TextEditingController(
-      text: equipmentData?.containsKey('reference') == true ? equipmentData!['reference'] : 'N/A',
+      text: equipmentData?['reference'] ?? '',
     );
     final TextEditingController serialNumberController = TextEditingController(
-      text: equipmentData?.containsKey('serial_number') == true ? equipmentData!['serial_number'] : 'N/A',
+      text: equipmentData?['serial_number'] ?? '',
     );
     final TextEditingController processorController = TextEditingController(
-      text: equipmentData?.containsKey('processor') == true ? equipmentData!['processor'] : 'N/A',
+      text: equipmentData?['processor'] ?? '',
     );
     final TextEditingController osController = TextEditingController(
-      text: equipmentData?.containsKey('os') == true ? equipmentData!['os'] : 'N/A',
+      text: equipmentData?['os'] ?? '',
     );
     final TextEditingController ramController = TextEditingController(
-      text: equipmentData?.containsKey('ram') == true ? equipmentData!['ram'] : 'N/A',
+      text: equipmentData?['ram'] ?? '',
     );
     final TextEditingController wirelessMouseController = TextEditingController(
-      text: equipmentData?.containsKey('wireless_mouse') == true ? equipmentData!['wireless_mouse'] : 'N/A',
+      text: equipmentData?['wireless_mouse'] ?? '',
     );
     final TextEditingController externalScreenController = TextEditingController(
-      text: equipmentData?.containsKey('external_screen') == true ? equipmentData!['external_screen'] : 'N/A',
+      text: equipmentData?['external_screen'] ?? '',
     );
     final TextEditingController screenBrandController = TextEditingController(
-      text: equipmentData?.containsKey('screen_brand') == true ? equipmentData!['screen_brand'] : 'N/A',
+      text: equipmentData?['screen_brand'] ?? '',
     );
     final TextEditingController screenSerialNumberController = TextEditingController(
-      text: equipmentData?.containsKey('screen_serial_number') == true ? equipmentData!['screen_serial_number'] : 'N/A',
+      text: equipmentData?['screen_serial_number'] ?? '',
     );
     final TextEditingController inventoryNumberEcrController = TextEditingController(
-      text: equipmentData?.containsKey('inventory_number_ecr') == true ? equipmentData!['inventory_number_ecr'] : 'N/A',
+      text: equipmentData?['inventory_number_ecr'] ?? '',
     );
     final TextEditingController departmentController = TextEditingController(
-      text: equipmentData?.containsKey('department') == true ? equipmentData!['department'] : 'N/A',
+      text: equipmentData?['department'] ?? '',
     );
     final TextEditingController statusController = TextEditingController(
-      text: equipmentData?.containsKey('status') == true ? equipmentData!['status'] : 'N/A',
+      text: equipmentData?['status'] ?? '',
     );
     final TextEditingController inventoryNumberLptController = TextEditingController(
-      text: equipmentData?.containsKey('inventory_number_lpt') == true ? equipmentData!['inventory_number_lpt'] : 'N/A',
+      text: equipmentData?['inventory_number_lpt'] ?? '',
     );
 
     final List<String> typeOptions = ['imprimante', 'avaya', 'point d’access', 'switch', 'DVR', 'TV', 'scanner', 'routeur', 'balanceur', 'standard téléphonique', 'data show', 'desktop', 'laptop'];
@@ -89,7 +89,7 @@ class UpdateSpecificEquipmentPage extends StatelessWidget {
             children: [
               buildTextField("Date de debut", startTimeController),
               buildTextField("Date de fin", endTimeController),
-              buildTextField("address de messagerie", emailController),
+              buildTextField("Address de messagerie", emailController),
               buildTextField("Name", nameController),
               buildTextField("Site", siteController),
               buildDropdownField("Type", typeController, typeOptions),
@@ -139,6 +139,10 @@ class UpdateSpecificEquipmentPage extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Equipment updated successfully!")),
                     );
+                  }).catchError((error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Failed to update equipment: $error")),
+                    );
                   });
                 },
                 child: const Text("Save Changes"),
@@ -174,19 +178,19 @@ class UpdateSpecificEquipmentPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: DropdownButtonFormField<String>(
-        value: controller.text.isEmpty ? null : controller.text,
+        value: options.contains(controller.text) ? controller.text : null,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
         ),
-        items: options.map((option) {
-          return DropdownMenuItem(
+        items: options.map((String option) {
+          return DropdownMenuItem<String>(
             value: option,
             child: Text(option),
           );
         }).toList(),
         onChanged: (newValue) {
-          controller.text = newValue!;
+          controller.text = newValue ?? '';
         },
       ),
     );

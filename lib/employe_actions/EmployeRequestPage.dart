@@ -123,11 +123,11 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
           .map((doc) => doc['email'] as String)
           .toList();
 
-      // Send email to each admin 
+
       for (String adminEmail in adminEmails) {
         await Email_Service.sendEmail(
-          adminEmail,  // Send email to each admin
-          'New Equipment Request',  // Email subject
+          adminEmail,  
+          'New Equipment Request', 
           'A new equipment request has been made by $currentUserName ($currentEmail) for $equipmentType.\n'
           'User: $utilisateur\n'
           'Department: $department\n'
@@ -212,6 +212,8 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                         TextFormField(
                           decoration: InputDecoration(
                             labelText: 'Utilisateur',
+                            hintText: 'Entrez le nom et prénom',
+
                             border: OutlineInputBorder(),
                           ),
                           validator: (value) {

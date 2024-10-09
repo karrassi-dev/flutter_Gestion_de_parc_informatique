@@ -43,6 +43,8 @@ dependencies:
   badges: ^3.1.2
   mailer: ^6.1.2
   flutter_dotenv: ^5.1.0
+  http: ^1.2.2
+  device_info_plus: ^10.1.2
 
 dev_dependencies:
   flutter_test:

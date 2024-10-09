@@ -18,7 +18,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   final TextEditingController endTimeController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController siteController = TextEditingController();
+  //final TextEditingController siteController = TextEditingController();
   final TextEditingController typeController = TextEditingController();
   final TextEditingController userController = TextEditingController();
   final TextEditingController brandController = TextEditingController();
@@ -27,12 +27,11 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   final TextEditingController processorController = TextEditingController();
   final TextEditingController osController = TextEditingController();
   final TextEditingController ramController = TextEditingController();
-  final TextEditingController wirelessMouseController = TextEditingController();
   final TextEditingController externalScreenController = TextEditingController();
   final TextEditingController screenBrandController = TextEditingController();
   final TextEditingController screenSerialNumberController = TextEditingController();
   final TextEditingController inventoryNumberEcrController = TextEditingController();
-  final TextEditingController departmentController = TextEditingController();
+  //final TextEditingController departmentController = TextEditingController();
   final TextEditingController statusController = TextEditingController();
   final TextEditingController inventoryNumberLptController = TextEditingController();
 
@@ -42,17 +41,17 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   final CollectionReference equipmentCollection = FirebaseFirestore.instance.collection('equipment');
 
   final List<String> typeOptions = [
-    'imprimante', 'avaya', 'point d’access', 'switch', 'DVR', 'TV', 
-    'scanner', 'routeur', 'balanceur', 'standard téléphonique', 
+    'imprimante', 'avaya', 'point d’access', 'switch', 'DVR', 'TV',
+    'scanner', 'routeur', 'balanceur', 'standard téléphonique',
     'data show', 'desktop', 'laptop'
   ];
-
+/*
   final List<String> departmentOptions = [
-    'maintenance', 'qualité', 'administration', 'commercial', 'caisse', 
-    'chef d’agence', 'ADV', 'DOSI', 'DRH', 'logistique', 'contrôle de gestion', 
+    'maintenance', 'qualité', 'administration', 'commercial', 'caisse',
+    'chef d’agence', 'ADV', 'DOSI', 'DRH', 'logistique', 'contrôle de gestion',
     'moyens généraux', 'GRC', 'production', 'comptabilité', 'achat', 'audit'
   ];
-
+*/
   Future<void> registerEquipment() async {
     if (_formKey.currentState!.validate()) {
       User? currentUser = FirebaseAuth.instance.currentUser;
@@ -63,7 +62,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
           'end_time': endTimeController.text,
           'email': emailController.text,
           'name': nameController.text,
-          'site': siteController.text,
+          //'site': siteController.text,
           'type': typeController.text,
           'user': userController.text,
           'brand': brandController.text,
@@ -73,15 +72,19 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
           'os': osController.text,
           'ram': ramController.text,
           'wireless_mouse': _isWirelessMouse ? 'Oui' : 'Non',
-          'external_screen': externalScreenController.text,
-          'screen_brand': screenBrandController.text,
-          'screen_serial_number': screenSerialNumberController.text,
-          'inventory_number_ecr': inventoryNumberEcrController.text,
+          if (typeController.text == 'desktop') ...{
+            'external_screen': externalScreenController.text,
+            'screen_brand': screenBrandController.text,
+            'screen_serial_number': screenSerialNumberController.text,
+            'inventory_number_ecr': inventoryNumberEcrController.text,
+          },
+          /*
           'department': departmentController.text,
           'status': statusController.text,
           'inventory_number_lpt': inventoryNumberLptController.text,
           'added_by': currentUser.uid,
           'timestamp': FieldValue.serverTimestamp(),
+          */
         };
 
         try {
@@ -104,7 +107,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
     endTimeController.clear();
     emailController.clear();
     nameController.clear();
-    siteController.clear();
+    //siteController.clear();
     typeController.clear();
     userController.clear();
     brandController.clear();
@@ -113,12 +116,11 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
     processorController.clear();
     osController.clear();
     ramController.clear();
-    wirelessMouseController.clear();
     externalScreenController.clear();
     screenBrandController.clear();
     screenSerialNumberController.clear();
     inventoryNumberEcrController.clear();
-    departmentController.clear();
+    //departmentController.clear();
     statusController.clear();
     inventoryNumberLptController.clear();
   }
@@ -216,15 +218,16 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Register Equipment"),
+        title: const Text("Register Equipment",style: TextStyle(fontWeight: FontWeight.bold),),
+        backgroundColor: Colors.deepPurple,
       ),
       body: Form(
         key: _formKey,
         child: PageView(
           controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(), // Disable swiping between pages
+          physics: const NeverScrollableScrollPhysics(), 
           children: [
-
+            // Page 1
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -236,15 +239,16 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                   buildTextField(emailController, "Address de messagerie", Icons.email),
                   const SizedBox(height: 20),
                   buildTextField(nameController, "nom", Icons.person),
+                  /*
                   const SizedBox(height: 20),
                   buildTextField(siteController, "Site/agence", Icons.location_on),
+                  */
                   const SizedBox(height: 20),
                   buildDropdown(typeOptions, typeController, "Type"),
                 ],
               ),
             ),
-
-
+            // Page 2
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -259,69 +263,66 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                   const SizedBox(height: 20),
                   buildTextField(processorController, "composant - processeur", Icons.memory),
                   const SizedBox(height: 20),
-                  buildTextField(osController, "Operating System", Icons.computer),
+                  buildTextField(osController, "system d'exploitation", Icons.computer),
+                  const SizedBox(height: 20),
+                  buildTextField(ramController, "RAM (en Go)", Icons.memory),
+                  const SizedBox(height: 20),
+                  buildCheckbox("Souris sans fil"),
                 ],
               ),
             ),
-
-
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  buildTextField(ramController, "RAM(GO)", Icons.sd_storage),
-                  const SizedBox(height: 20),
-                  buildCheckbox("souris sans fil"),
-                  const SizedBox(height: 20),
-                  buildTextField(externalScreenController, "ecran extern", Icons.monitor),
-                  const SizedBox(height: 20),
-                  buildTextField(screenBrandController, "marque d'ecran", Icons.tv),
-                  const SizedBox(height: 20),
-                  buildTextField(screenSerialNumberController, "S.N d'ecran", Icons.confirmation_number_outlined),
-                  const SizedBox(height: 20),
-                  buildTextField(inventoryNumberEcrController, "numero d'inventaire ECR", Icons.inventory),
-                ],
-              ),
-            ),
-
-
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  buildDropdown(departmentOptions, departmentController, "Departement/Service"),
-                  const SizedBox(height: 20),
-                  buildTextField(statusController, "Etat", Icons.check_circle_outline),
-                  const SizedBox(height: 20),
-                  buildTextField(inventoryNumberLptController, "numero d'inventaire LPT", Icons.inventory_2),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: registerEquipment,
-                    child: const Text("Submit"),
-                  ),
+            // Page 3  for desktop)
+Padding(
+  padding: const EdgeInsets.all(20.0),
+  child: Column(
+    children: [
+      if (typeController.text == 'desktop') ...[
+        buildTextField(externalScreenController, "Ecran externe", Icons.desktop_windows),
+        const SizedBox(height: 20),
+        buildTextField(screenBrandController, "Marque de l'ecran", Icons.tv),
+        const SizedBox(height: 20),
+        buildTextField(screenSerialNumberController, "Numéro de série de l'écran", Icons.confirmation_number),
+        const SizedBox(height: 20),
+        buildTextField(inventoryNumberEcrController, "N° inventaire ECR", Icons.category),
+        const SizedBox(height: 20),
+      ],
+      /*
+      buildDropdown(departmentOptions, departmentController, "Département"), // Use the dropdown here
+      const SizedBox(height: 20),
+      */
+      buildTextField(statusController, "État", Icons.assignment_turned_in),
+      const SizedBox(height: 20),
+      buildTextField(inventoryNumberLptController, "N° inventaire LPT", Icons.category),
                 ],
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            if (currentPageIndex > 0)
-              ElevatedButton(
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (currentPageIndex > 0)
+            Padding(
+              padding: const EdgeInsets.only(
+                  left: 38.0), 
+              child: FloatingActionButton(
                 onPressed: previousPage,
-                child: const Text("Previous"),
+                child: const Icon(Icons.arrow_back),
               ),
-            if (currentPageIndex < 3)
-              ElevatedButton(
-                onPressed: nextPage,
-                child: const Text("Next"),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 38.0),
+                child:FloatingActionButton(
+            onPressed: currentPageIndex == 2 ? registerEquipment : nextPage,
+            child: currentPageIndex == 2
+                ? const Icon(Icons.save)
+                : const Icon(Icons.arrow_forward),
+          ),
               ),
-          ],
-        ),
+          
+        ],
       ),
     );
   }

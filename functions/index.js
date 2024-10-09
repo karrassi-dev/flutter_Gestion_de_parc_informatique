@@ -1,40 +1,37 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const nodemailer = require('nodemailer');
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const axios = require("axios");
 
 admin.initializeApp();
 
-// Configure the Gmail SMTP transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: 'karrassihamza0508@gmail.com', // Your Gmail address
-    pass: 'ejuu ezyn zapq ribj', // Your Gmail password or App Password
-  },
-});
-
-exports.sendEmailNotification = functions.firestore
+exports.sendDataToGLPI = functions.firestore
   .document('equipmentRequests/{requestId}')
   .onCreate(async (snap, context) => {
-    const requestData = snap.data();
-
-    const mailOptions = {
-      from: 'your-email@gmail.com', // Your Gmail address
-      to: 'karrassihamza0508@gmail.com', // Admin email address
-      subject: 'New Equipment Request',
-      text: `New equipment request from: ${requestData.name}\n` +
-            `Email: ${requestData.email}\n` +
-            `Equipment Type: ${requestData.equipmentType}\n` +
-            `Utilisateur: ${requestData.utilisateur}\n` +
-            `Department: ${requestData.department}\n` +
-            `Additional Details: ${requestData.additionalDetails}\n` +
-            `Request Date: ${requestData.requestDate}`,
+    const newValue = snap.data();
+    
+    const glpiData = {
+      // format this according to GLPI's API requirements
+      name: newValue.name,
+      email: newValue.email,
+      equipmentType: newValue.equipmentType,
+      utilisateur: newValue.utilisateur,
+      department: newValue.department,
+      site: newValue.site,
+      additionalDetails: newValue.additionalDetails,
+      requester: newValue.requester,
+      status: newValue.status,
+      requestDate: newValue.requestDate,
     };
 
     try {
-      await transporter.sendMail(mailOptions);
-      console.log('Email sent successfully');
+      await axios.post('https://your-glpi-instance/api/request', glpiData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer sQtgkB5VdTuH0EKD6p830GWXEuAsntN3osiGW5OSN`,
+        },
+      });
+      console.log('Data sent to GLPI successfully.');
     } catch (error) {
-      console.error('Error sending email:', error);
+      console.error('Error sending data to GLPI:', error);
     }
   });

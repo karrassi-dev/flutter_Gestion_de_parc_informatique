@@ -24,9 +24,9 @@ class ViewEquipmentDetailsPage extends StatelessWidget {
               _buildDetailCard("Nom", equipmentData?['name']),
               _buildDetailCard("Address de messagerie", equipmentData?['email']),
               _buildDetailCard("Type", equipmentData?['type']),
-              _buildDetailCard("marque", equipmentData?['brand']),
-              _buildDetailCard("numero de serie", equipmentData?['serial_number']),
-              _buildDetailCard("Processor", equipmentData?['processor']),
+              _buildDetailCard("marque", equipmentData?['model']),
+              _buildDetailCard("N.Serie", equipmentData?['serial_number']),
+              _buildDetailCard("Processor", _getTruncatedProcessor(equipmentData?['processor'])),
               _buildDetailCard("Os", equipmentData?['os']),
               _buildDetailCard("RAM(Gb)", equipmentData?['ram']),
               _buildDetailCard("souris sans fil", equipmentData?['wireless_mouse']),
@@ -60,13 +60,25 @@ class ViewEquipmentDetailsPage extends StatelessWidget {
               title,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            Text(
-              value ?? 'N/A',
-              style: const TextStyle(fontSize: 16),
+            Flexible(
+              child: Text(
+                value ?? 'N/A',
+                style: const TextStyle(fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  // Function to truncate processor string
+  String _getTruncatedProcessor(String? processor) {
+    if (processor == null) return 'N/A';
+    // Extract only the part that includes the processor model
+    final RegExp regex = RegExp(r'i\d-\d+HQ.*');
+    final match = regex.firstMatch(processor);
+    return match != null ? match.group(0)! : processor;
   }
 }

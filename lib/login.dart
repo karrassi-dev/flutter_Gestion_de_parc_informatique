@@ -4,19 +4,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'Employe.dart';
 import 'Admin.dart';
 import 'register.dart';
-
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
+import 'services/sendLoginData.dart';
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  bool _isObscure3 = true;
-  bool visible = false;
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final _auth = FirebaseAuth.instance;
+  bool _isObscure3 = true; 
+  bool visible = false; 
+  final _formKey = GlobalKey<FormState>(); 
+  final TextEditingController emailController = TextEditingController(); 
+  final TextEditingController passwordController = TextEditingController(); 
+  final _auth = FirebaseAuth.instance; 
 
   @override
   Widget build(BuildContext context) {
@@ -26,24 +28,24 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _header(context),
-            _inputField(context),
-            _forgotPassword(context),
+            _header(), 
+            _inputField(), 
+            _forgotPassword(), 
             Visibility(
               maintainSize: true,
               maintainAnimation: true,
               maintainState: true,
-              visible: visible,
+              visible: visible, 
               child: const CircularProgressIndicator(color: Colors.purple),
             ),
-            _signup(context),
+            _signup(), 
           ],
         ),
       ),
     );
   }
 
-  Widget _header(BuildContext context) {
+  Widget _header() {
     return const Column(
       children: [
         Text(
@@ -55,12 +57,14 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _inputField(BuildContext context) {
+
+  Widget _inputField() {
     return Form(
-      key: _formKey,
+      key: _formKey, 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Email field
           TextFormField(
             controller: emailController,
             decoration: InputDecoration(
@@ -84,9 +88,10 @@ class _LoginPageState extends State<LoginPage> {
             },
           ),
           const SizedBox(height: 10),
+
           TextFormField(
             controller: passwordController,
-            obscureText: _isObscure3,
+            obscureText: _isObscure3, 
             decoration: InputDecoration(
               hintText: "Password",
               border: OutlineInputBorder(
@@ -116,13 +121,15 @@ class _LoginPageState extends State<LoginPage> {
             },
           ),
           const SizedBox(height: 10),
+
+
           ElevatedButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
                 setState(() {
-                  visible = true;
+                  visible = true; 
                 });
-                signIn(emailController.text, passwordController.text);
+                signIn(emailController.text, passwordController.text); 
               }
             },
             style: ElevatedButton.styleFrom(
@@ -133,15 +140,15 @@ class _LoginPageState extends State<LoginPage> {
             child: const Text(
               "Login",
               style: TextStyle(fontSize: 20, color: Colors.black),
-              
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  Widget _forgotPassword(BuildContext context) {
+
+  Widget _forgotPassword() {
     return TextButton(
       onPressed: () {
 
@@ -153,7 +160,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _signup(BuildContext context) {
+
+  Widget _signup() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -175,23 +183,25 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void route() async {
-    User? user = _auth.currentUser;
+    User? user = _auth.currentUser; 
     if (user != null) {
       try {
+
         DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
         if (documentSnapshot.exists) {
+
           if (documentSnapshot.get('role') == "Admin") {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => Admin()),
+              MaterialPageRoute(builder: (context) => Admin()), 
             );
           } else {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => Employe()),
+              MaterialPageRoute(builder: (context) => Employe()), 
             );
           }
         } else {
@@ -201,34 +211,71 @@ class _LoginPageState extends State<LoginPage> {
         print('Error fetching user data: $e');
       } finally {
         setState(() {
-          visible = false;
+          visible = false; 
         });
       }
     }
   }
 
+
   void signIn(String email, String password) async {
-    try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      route();
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      if (e.code == 'user-not-found') {
-        errorMessage = 'No user found for that email.';
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'Wrong password provided for that user.';
-      } else {
-        errorMessage = 'An error occurred. Please try again.';
-      }
-      setState(() {
-        visible = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(errorMessage),
-        backgroundColor: Colors.red,
-      ));
+  try {
+
+    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+
+    final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    String serialNumber = '';
+    String deviceModel = '';
+
+    if (Platform.isAndroid) {
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      serialNumber = androidInfo.id; 
+      deviceModel = androidInfo.model; 
+    } else if (Platform.isIOS) {
+      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      serialNumber = iosInfo.identifierForVendor!;
+      deviceModel = iosInfo.utsname.machine; 
     }
+
+
+    User? user = userCredential.user;
+    if (user != null) {
+      
+      await FirebaseFirestore.instance.collection('loginRecords').add({
+        'userId': user.uid,
+        'email': email, 
+        'deviceId': serialNumber,
+        'deviceModel': deviceModel, 
+        'loginTimestamp': FieldValue.serverTimestamp(),
+      });
+
+      route(); 
+    }
+  } on FirebaseAuthException catch (e) {
+
+    String errorMessage;
+    if (e.code == 'user-not-found') {
+      errorMessage = 'No user found for that email.';
+    } else if (e.code == 'wrong-password') {
+      errorMessage = 'Wrong password provided for that user.';
+    } else {
+      errorMessage = 'An error occurred. Please try again.';
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(errorMessage),
+      backgroundColor: Colors.red,
+    ));
+  } catch (e) {
+
+    print('Error: $e');
   }
+}
+
+
 
   @override
   void dispose() {
