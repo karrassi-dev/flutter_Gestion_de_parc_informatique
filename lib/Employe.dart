@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_flutter_app/login.dart';
 import 'employe_actions/MyRequestsPage.dart';
+import 'admincrud/QRCodeScannerPage.dart';
 
 import 'employe_actions/EmployeRequestPage.dart';
 
@@ -69,6 +70,39 @@ class Employe extends StatelessWidget {
                 icon: const Icon(Icons.add, color: Colors.white),
                 label: const Text(
                   "Faire une Demande d'Équipement",
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  backgroundColor: Colors.deepPurple,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18.0),
+                  ),
+                  elevation: 5.0,
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // New QR Scan Button
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    // MaterialPageRoute(builder: (context) => const QRCodeScannerPage()),
+                    MaterialPageRoute(builder: (context) => const QRCodeScannerPage()),
+                  );
+                  if (result != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("QR Code Scanned: $result")),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                label: const Text(
+                  "Scan QR Code",
                   style: TextStyle(color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(

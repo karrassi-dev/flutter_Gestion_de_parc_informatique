@@ -22,6 +22,30 @@ class Email_Service {
   }
 }
 
+/*
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
+
+class EmailService {
+  static Future<void> sendEmail(
+      String toEmail, String subject, String body) async {
+    final smtpServer = gmail('karrassihamza0508@gmail.com', 'your_app_password'); // Use your App Password here
+    final message = Message()
+      ..from = Address('karrassihamza0508@gmail.com', 'flutter-GPI') // Correct sender address
+      ..recipients.add(toEmail)
+      ..subject = subject
+      ..text = body;
+
+    try {
+      await send(message, smtpServer);
+      print('Email sent to $toEmail');
+    } catch (e, stackTrace) {
+      print("Error sending email: $e");
+      print("Stack trace: $stackTrace");
+    }
+  }
+}
+*/
 
 
 

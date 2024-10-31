@@ -1,7 +1,7 @@
 // The plugins block must come first
 plugins {
-    // Add the dependency for the Google services Gradle plugin
-    id 'com.google.gms.google-services' version '4.4.2' apply false
+    // Use the updated Google services Gradle plugin version
+    id 'com.google.gms.google-services' version '4.3.15' apply false
 }
 
 // All other configurations come after the plugins block

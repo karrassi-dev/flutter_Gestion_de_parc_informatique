@@ -13,7 +13,6 @@ class _RegisterState extends State<Register> {
   final _formKey = GlobalKey<FormState>();
   final _auth = FirebaseAuth.instance;
   final TextEditingController nameController = TextEditingController();
-
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmpassController = TextEditingController();
@@ -21,9 +20,9 @@ class _RegisterState extends State<Register> {
   bool _isObscure2 = true;
   bool showProgress = false;
 
-  var options = ['employe', 'Admin'];
-  var _currentItemSelected = "employe";
-  var rool = "employe";
+  var options = ['employee', 'Admin'];
+  var _currentItemSelected = "employee";
+  var role = "employee";
 
   @override
   Widget build(BuildContext context) {
@@ -62,25 +61,25 @@ class _RegisterState extends State<Register> {
                     child: Column(
                       children: <Widget>[
                         TextFormField(
-  controller: nameController,
-  decoration: InputDecoration(
-    hintText: "Name",
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-    fillColor: Colors.purple.withOpacity(0.1),
-    filled: true,
-    prefixIcon: const Icon(Icons.person),
-  ),
-  validator: (value) {
-    if (value!.isEmpty) {
-      return "Name cannot be empty";
-    }
-    return null;
-  },
-),
-const SizedBox(height: 20),
+                          controller: nameController,
+                          decoration: InputDecoration(
+                            hintText: "Name",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none,
+                            ),
+                            fillColor: Colors.purple.withOpacity(0.1),
+                            filled: true,
+                            prefixIcon: const Icon(Icons.person),
+                          ),
+                          validator: (value) {
+                            if (value!.isEmpty) {
+                              return "Name cannot be empty";
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
                         TextFormField(
                           controller: emailController,
                           decoration: InputDecoration(
@@ -106,8 +105,8 @@ const SizedBox(height: 20),
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
-                          obscureText: _isObscure,
                           controller: passwordController,
+                          obscureText: _isObscure,
                           decoration: InputDecoration(
                             hintText: "Password",
                             border: OutlineInputBorder(
@@ -118,11 +117,9 @@ const SizedBox(height: 20),
                             filled: true,
                             prefixIcon: const Icon(Icons.lock),
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                _isObscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
+                              icon: Icon(_isObscure
+                                  ? Icons.visibility
+                                  : Icons.visibility_off),
                               onPressed: () {
                                 setState(() {
                                   _isObscure = !_isObscure;
@@ -142,8 +139,8 @@ const SizedBox(height: 20),
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
-                          obscureText: _isObscure2,
                           controller: confirmpassController,
+                          obscureText: _isObscure2,
                           decoration: InputDecoration(
                             hintText: "Confirm Password",
                             border: OutlineInputBorder(
@@ -154,11 +151,9 @@ const SizedBox(height: 20),
                             filled: true,
                             prefixIcon: const Icon(Icons.lock),
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                _isObscure2
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
+                              icon: Icon(_isObscure2
+                                  ? Icons.visibility
+                                  : Icons.visibility_off),
                               onPressed: () {
                                 setState(() {
                                   _isObscure2 = !_isObscure2;
@@ -167,155 +162,130 @@ const SizedBox(height: 20),
                             ),
                           ),
                           validator: (value) {
-                            if (confirmpassController.text !=
-                                passwordController.text) {
+                            if (value != passwordController.text) {
                               return "Passwords do not match";
                             }
                             return null;
                           },
                         ),
+                        const SizedBox(height: 20),
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none,
+                            ),
+                            fillColor: Colors.purple.withOpacity(0.1),
+                            filled: true,
+                            prefixIcon: const Icon(Icons.admin_panel_settings),
+                          ),
+                          items: options.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (newValueSelected) {
+                            setState(() {
+                              _currentItemSelected = newValueSelected!;
+                              role = newValueSelected;
+                            });
+                          },
+                          value: _currentItemSelected,
+                        ),
+                        const SizedBox(height: 30),
+                        ElevatedButton(
+                          onPressed: () {
+                            signUp(emailController.text, passwordController.text,
+                                nameController.text, role);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            backgroundColor: Colors.deepPurple,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18.0),
+                            ),
+                          ),
+                          child: showProgress
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  "Register",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
                       ],
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Role: "),
-                      DropdownButton<String>(
-                        dropdownColor: Colors.white,
-                        value: _currentItemSelected,
-                        onChanged: (newValue) {
-                          setState(() {
-                            _currentItemSelected = newValue!;
-                            rool = newValue;
-                          });
-                        },
-                        items: options.map((String role) {
-                          return DropdownMenuItem<String>(
-                            value: role,
-                            child: Text(role),
-                          );
-                        }).toList(),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      "Already have an account? Login here.",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
                       ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.only(top: 3, left: 3),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          setState(() {
-                            showProgress = true;
-                          });
-                          signUp(emailController.text, passwordController.text, rool);
-                        }
-                      },
-                      child: showProgress
-                          ? CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            )
-                          : const Text(
-                              "Register",
-                              style: TextStyle(fontSize: 20,color: Colors.black),
-                            ),
-                      style: ElevatedButton.styleFrom(
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.purple,
-                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      const Text("Already have an account?"),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => LoginPage()),
-                          );
-                        },
-                        child: const Text(
-                          "Login",
-                          style: TextStyle(color: Colors.purple),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
             ),
           ),
-          if (showProgress)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
         ],
       ),
     );
   }
 
-  void signUp(String email, String password, String rool) async {
-    try {
-    await _auth.createUserWithEmailAndPassword(email: email, password: password);
-    await postDetailsToFirestore(email, rool);
-  } on FirebaseAuthException catch (e) {
-    setState(() {
-      showProgress = false;
-    });
+  // Sign up with Firebase Authentication
+  void signUp(String email, String password, String name, String role) async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        showProgress = true;
+      });
 
-    String errorMessage;
+      try {
+        final newUser = await _auth.createUserWithEmailAndPassword(
+            email: email, password: password);
 
-    switch (e.code) {
-      case 'email-already-in-use':
-        errorMessage = 'The email address is already in use by another account.';
-        break;
-      case 'invalid-email':
-        errorMessage = 'The email address is not valid.';
-        break;
-      case 'weak-password':
-        errorMessage = 'The password provided is too weak.';
-        break;
-      default:
-        errorMessage = 'An unexpected error occurred. Please try again.';
-        break;
+        if (newUser != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(newUser.user!.uid)
+              .set({
+            'email': email,
+            'name': name,
+            'role': role,
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("User registered successfully!"),
+            ),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message.toString()),
+          ),
+        );
+      } finally {
+        setState(() {
+          showProgress = false;
+        });
+      }
     }
-
-    // Show error message using a SnackBar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(errorMessage)),
-    );
   }
-  }
-
-  Future<void> postDetailsToFirestore(String email, String rool) async {
-  FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
-  var user = _auth.currentUser;
-
-  await firebaseFirestore.collection('users').doc(user!.uid).set({
-    'name': nameController.text, // Add the name field
-    'email': email,
-    'role': rool,
-  });
-
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (context) => LoginPage()),
-  );
-}
-
-
-  @override
-void dispose() {
-  emailController.dispose();
-  passwordController.dispose();
-  confirmpassController.dispose();
-  nameController.dispose();  // Dispose the name controller
-  super.dispose();
-}
-
 }

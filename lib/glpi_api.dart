@@ -26,7 +26,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _statusMessage = ''; // Variable to hold status messages
+  String _statusMessage = ''; 
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +68,7 @@ class _MyAppState extends State<MyApp> {
           }
           if (snapshot.hasData) {
             String? role = snapshot.data!.get('role');
-            String apiToken = 'sQtgkB5VdTuH0EKD6p830GWXEuAsntN3osiGW5OS'; // Replace with your actual API token
+            String apiToken = 'sQtgkB5VdTuH0EKD6p830GWXEuAsntN3osiGW5OS'; 
 
             // Fetch data from GLPI
             fetchGLPIComputers(apiToken);
@@ -101,10 +101,10 @@ class _MyAppState extends State<MyApp> {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      // Process the data as needed, e.g., store it in Firestore
+
       await storeDataInFirestore(data);
       setState(() {
-        _statusMessage = 'Data fetched and stored successfully!'; // Update status message
+        _statusMessage = 'Data fetched and stored successfully!'; 
       });
     } else {
       setState(() {
@@ -122,13 +122,13 @@ class _MyAppState extends State<MyApp> {
   Future<void> storeDataInFirestore(Map<String, dynamic> data) async {
     try {
       final firestore = FirebaseFirestore.instance;
-      for (var item in data['data']) { // Assuming the computers are in a 'data' array
+      for (var item in data['data']) { 
         await firestore.collection('computers').add(item);
       }
       print('Data stored successfully in Firestore.');
     } catch (error) {
       setState(() {
-        _statusMessage = 'Error storing data: $error'; // Update status message on error
+        _statusMessage = 'Error storing data: $error'; 
       });
       print('Error storing data: $error');
     }

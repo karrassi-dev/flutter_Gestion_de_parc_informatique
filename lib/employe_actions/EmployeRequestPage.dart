@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../email_service.dart'; 
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class EmployRequestsPage extends StatefulWidget {
   @override
@@ -14,9 +16,9 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
 
   String currentUserName = "";
   String currentEmail = "";
-  String equipmentType = "Scanner"; // Default value
-  String department = "DOSI"; // Default value
-  String site = 'Agence Oujda'; // Default value for site/agence
+  String equipmentType = "Scanner"; 
+  String department = "DOSI"; 
+  String site = 'Agence Oujda'; 
   String utilisateur = "";
   String additionalDetails = "";
   bool isLoading = true;
@@ -61,7 +63,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
     }
   }
 
-  // Function to show a loader dialog
+  // loader dialog
   void showLoaderDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -94,63 +96,115 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
   }
 
   Future<void> submitRequest() async {
-    if (_formKey.currentState!.validate()) {
-      // loader when submitting 
-      showLoaderDialog(context);
+  if (_formKey.currentState!.validate()) {
+    // Loader when submitting
+    showLoaderDialog(context);
 
-      // Add Firestore
-      await FirebaseFirestore.instance.collection('equipmentRequests').add({
-        'name': currentUserName,
-        'email': currentEmail,
-        'equipmentType': equipmentType,
-        'utilisateur': utilisateur,
-        'department': department,
-        'site': site,  
-        'additionalDetails': additionalDetails,
-        'requester': currentEmail,
-        'isRead': false,
-        'status': 'Pending',
-        'requestDate': DateTime.now(),
-      });
+    await FirebaseFirestore.instance.collection('equipmentRequests').add({
+      'name': currentUserName,
+      'email': currentEmail,
+      'equipmentType': equipmentType,
+      'utilisateur': utilisateur,
+      'department': department,
+      'site': site,
+      'additionalDetails': additionalDetails,
+      'requester': currentEmail,
+      'isRead': false,
+      'status': 'Pending',
+      'requestDate': DateTime.now(),
+    });
 
-      // Fetch admin 
-      QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('role', isEqualTo: 'Admin')
-          .get();
+    // Fetch admin emails
+    QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('role', isEqualTo: 'Admin')
+        .get();
 
-      List<String> adminEmails = adminSnapshot.docs
-          .map((doc) => doc['email'] as String)
-          .toList();
+    List<String> adminEmails = adminSnapshot.docs
+        .map((doc) => doc['email'] as String)
+        .toList();
 
+    // Send email notification to backend
+    final notificationBody = {
+      'admins': adminEmails,
+      'requesterName': currentUserName,
+      'requesterEmail': currentEmail,
+      'equipmentType': equipmentType,
+      'utilisateur': utilisateur,
+      'department': department,
+      'site': site,
+      'additionalDetails': additionalDetails,
+    };
+    //localhost ip address
+    final response = await http.post(
+      //Uri.parse('http://10.0.9.83:4000/send-email'),
+      Uri.parse('http://54.166.39.114:4000/send-email'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(notificationBody),
+    );
 
-      for (String adminEmail in adminEmails) {
-        await Email_Service.sendEmail(
-          adminEmail,  
-          'New Equipment Request', 
-          'A new equipment request has been made by $currentUserName ($currentEmail) for $equipmentType.\n'
-          'User: $utilisateur\n'
-          'Department: $department\n'
-          'Site/Agence: $site\n'
-          'Additional Details: $additionalDetails\n'
-        );
-      }
-
-      hideLoaderDialog(context);
-
-      // success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Request Submitted Successfully")),
-      );
-
-      // Reset the form
-      _formKey.currentState!.reset();
-      setState(() {
-        additionalDetails = "";
-      });
+    if (response.statusCode == 200) {
+      print("Email notifications sent successfully");
+    } else {
+      print("Failed to send email notifications: ${response.body}");
     }
-  }
 
+    // Fetch all FCM tokens from adminFcmToken collection
+    QuerySnapshot fcmTokenSnapshot = await FirebaseFirestore.instance
+        .collection('adminFcmToken')
+        .get();
+
+    List<String> fcmTokens = fcmTokenSnapshot.docs
+        .map((doc) => doc['fcmToken'] as String)
+        .toList();
+
+    // Prepare the notification message
+    final String notificationMessage = "New Equipment Request submitted by $currentUserName for $equipmentType.";
+
+    // Send notification to each FCM token
+    for (String token in fcmTokens) {
+      await sendNotification(token, notificationMessage);
+    }
+
+    hideLoaderDialog(context);
+
+    // Success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Request Submitted Successfully")),
+    );
+
+    // Reset the form
+    _formKey.currentState!.reset();
+    setState(() {
+      additionalDetails = "";
+    });
+  }
+}
+
+
+Future<void> sendNotification(String token, String message) async {
+  final response = await http.post(
+
+    //localhost ip address
+    //Uri.parse('http://10.0.9.83:3000/send-notification'), 
+    Uri.parse('http://54.166.39.114:3000/send-notification'), 
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({
+      'tokens': [token],
+      'message': message,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    print("Notification sent successfully");
+  } else {
+    print("Failed to send notification: ${response.body}");
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -318,4 +372,3 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
     );
   }
 }
-

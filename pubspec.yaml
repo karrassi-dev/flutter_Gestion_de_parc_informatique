@@ -45,6 +45,26 @@ dependencies:
   flutter_dotenv: ^5.1.0
   http: ^1.2.2
   device_info_plus: ^10.1.2
+  flutter_local_notifications: ^17.2.3
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+  dart_jsonwebtoken: ^2.14.1
+  crypto_keys: ^0.3.0+1
+  provider: ^6.1.2
+  flutter_launcher_icons: ^0.14.1
+  qr_flutter: ^4.1.0
+  pdf: ^3.11.1
+  printing: ^5.13.3
+  path_provider: ^2.1.4
+  permission_handler: ^11.3.1
+  qr_code_scanner:
+    path: ./packages/qr_code_scanner
+  fl_chart: ^0.69.0
+  screenshot: ^3.0.0
+  blue_thermal_printer:
+    path: ./packages/blue_thermal_printer
+  encrypt: ^5.0.3
+  
 
 dev_dependencies:
   flutter_test:
@@ -98,3 +118,5 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  
