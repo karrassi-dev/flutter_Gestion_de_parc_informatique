@@ -31,7 +31,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final FCMService fcmService = FCMService('assets/glpi.json'); 
+  final FCMService fcmService = FCMService('assets/glpi.json');
 
   @override
   Widget build(BuildContext context) {

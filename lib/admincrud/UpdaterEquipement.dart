@@ -54,13 +54,19 @@ class _UpdaterEquipmentState extends State<UpdaterEquipment> {
           }
 
           final filteredDocs = snapshot.data!.docs.where((doc) {
-            final equipmentData = doc.data() as Map<String, dynamic>;
-            return equipmentData['name'].toLowerCase().contains(searchQuery) ||
-                equipmentData['email'].toLowerCase().contains(searchQuery) ||
-                equipmentData['type'].toLowerCase().contains(searchQuery) ||
-                equipmentData['brand'].toLowerCase().contains(searchQuery) ||
-                equipmentData['serial_number'].toLowerCase().contains(searchQuery);
-          }).toList();
+  final equipmentData = doc.data() as Map<String, dynamic>;
+  final name = equipmentData['name']?.toLowerCase() ?? '';
+  final email = equipmentData['email']?.toLowerCase() ?? '';
+  final type = equipmentData['type']?.toLowerCase() ?? '';
+  final brand = equipmentData['brand']?.toLowerCase() ?? '';
+  final serialNumber = equipmentData['serial_number']?.toLowerCase() ?? '';
+
+  return name.contains(searchQuery) ||
+         email.contains(searchQuery) ||
+         type.contains(searchQuery) ||
+         brand.contains(searchQuery) ||
+         serialNumber.contains(searchQuery);
+}).toList();
 
           return ListView.builder(
             padding: const EdgeInsets.all(10),

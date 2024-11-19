@@ -54,7 +54,7 @@ dependencies:
   flutter_launcher_icons: ^0.14.1
   qr_flutter: ^4.1.0
   pdf: ^3.11.1
-  printing: ^5.13.3
+  printing: ^5.13.4
   path_provider: ^2.1.4
   permission_handler: ^11.3.1
   qr_code_scanner:
@@ -64,6 +64,10 @@ dependencies:
   blue_thermal_printer:
     path: ./packages/blue_thermal_printer
   encrypt: ^5.0.3
+  flutter_svg: ^2.0.11
+  qr: ^3.0.2
+  barcode: ^2.2.8
+  
   
 
 dev_dependencies:

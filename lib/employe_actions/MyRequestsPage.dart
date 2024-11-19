@@ -101,82 +101,86 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
                   }
 
                   final historyData = historySnapshot.data?.docs.isNotEmpty == true
-                      ? historySnapshot.data!.docs.first.data() as Map<String, dynamic>?
-                      : null;
+    ? historySnapshot.data!.docs.first.data() as Map<String, dynamic>?
+    : null;
 
-                  String assignedBy = historyData?['assignedBy'] ?? 'N/A';
-                  String assignedTo = historyData?['assignedTo'] ?? 'N/A';
-                  Timestamp? assignmentTimestamp = historyData?['assignmentDate'];
-                  String assignmentDate = assignmentTimestamp != null
-                      ? "${assignmentTimestamp.toDate().day}/${assignmentTimestamp.toDate().month}/${assignmentTimestamp.toDate().year} à ${assignmentTimestamp.toDate().hour}:${assignmentTimestamp.toDate().minute}"
-                      : 'N/A';
+// Access each field based on your document structure
+String assignedBy = historyData?['assignedBy'] ?? 'N/A';
+String utilisateur = historyData?['utilisateur'] ?? 'N/A';
+Timestamp? assignmentTimestamp = historyData?['assignedDate'];
+String assignmentDate = assignmentTimestamp != null
+    ? "${assignmentTimestamp.toDate().day}/${assignmentTimestamp.toDate().month}/${assignmentTimestamp.toDate().year} à ${assignmentTimestamp.toDate().hour}:${assignmentTimestamp.toDate().minute}"
+    : 'N/A';
 
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    elevation: 5,
-                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isAssigned ? Colors.green : Colors.orange,
-                        child: Icon(
-                          isAssigned ? Icons.check_circle : Icons.pending,
-                          color: Colors.white,
-                        ),
-                      ),
-                      title: Text(
-                        requestData?['equipmentType'] ?? "Équipement non spécifié",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 5),
-                          Text(
-                            "Demandeur: ${requestData?['name'] ?? "Inconnu"}",
-                            style: const TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                          Text(
-                            "Département: ${requestData?['department'] ?? "Inconnu"}",
-                            style: const TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                          if (isAssigned)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 5),
-                                Text(
-                                  "Assigné par: $assignedBy",
-                                  style: const TextStyle(fontSize: 14, color: Colors.blue),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  "Assigné à: $assignedTo",
-                                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  "Date d'assignation: $assignmentDate",
-                                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                      trailing: Icon(
-                        isAssigned ? Icons.done : Icons.hourglass_empty,
-                        color: isAssigned ? Colors.green : Colors.orange,
-                        size: 30,
-                      ),
-                      onTap: () {
-                        // Handle tap action, e.g., navigate to details page
-                      },
-                    ),
-                  );
+
+                  // In ListView.builder, remove the FutureBuilder and directly access requestData fields
+return Card(
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(15),
+  ),
+  elevation: 5,
+  margin: const EdgeInsets.symmetric(vertical: 8.0),
+  child: ListTile(
+    leading: CircleAvatar(
+      backgroundColor: isAssigned ? Colors.green : Colors.orange,
+      child: Icon(
+        isAssigned ? Icons.check_circle : Icons.pending,
+        color: Colors.white,
+      ),
+    ),
+    title: Text(
+      requestData?['equipmentType'] ?? "Équipement non spécifié",
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    subtitle: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 5),
+        Text(
+          "Demandeur: ${requestData?['name'] ?? "Inconnu"}",
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        Text(
+          "Département: ${requestData?['department'] ?? "Inconnu"}",
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        if (isAssigned)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 5),
+              Text(
+                "Assigné par: ${requestData?['assignedBy'] ?? 'N/A'}",
+                style: const TextStyle(fontSize: 14, color: Colors.blue),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                "Assigné à: ${requestData?['utilisateur'] ?? 'N/A'}",
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                "Date d'assignation: ${requestData?['assignedDate'] != null ? "${(requestData?['assignedDate'] as Timestamp).toDate().day}/${(requestData?['assignedDate'] as Timestamp).toDate().month}/${(requestData?['assignedDate'] as Timestamp).toDate().year} à ${(requestData?['assignedDate'] as Timestamp).toDate().hour}:${(requestData?['assignedDate'] as Timestamp).toDate().minute}" : 'N/A'}",
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
+          ),
+      ],
+    ),
+    trailing: Icon(
+      isAssigned ? Icons.done : Icons.hourglass_empty,
+      color: isAssigned ? Colors.green : Colors.orange,
+      size: 30,
+    ),
+    onTap: () {
+      // Handle tap action, e.g., navigate to details page
+    },
+  ),
+);
+
                 },
               );
             },

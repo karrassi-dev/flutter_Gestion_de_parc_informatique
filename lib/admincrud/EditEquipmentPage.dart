@@ -1,6 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
+import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:crypto/crypto.dart';
+
+// Encryption helper class
+class EncryptionHelper {
+  final encrypt.Key key;
+  final encrypt.IV iv;
+
+  EncryptionHelper(String password)
+      : key = encrypt.Key.fromUtf8(md5.convert(utf8.encode(password)).toString()),
+        iv = encrypt.IV.fromUtf8('16-Bytes---IVKey'); // Fixed IV for consistency
+
+  String encryptText(String text) {
+    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    final encrypted = encrypter.encrypt(text, iv: iv);
+    return encrypted.base64;
+  }
+}
 
 class EditEquipmentPage extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -14,6 +32,7 @@ class EditEquipmentPage extends StatefulWidget {
 
 class _EditEquipmentPageState extends State<EditEquipmentPage> {
   late Map<String, TextEditingController> _controllers;
+  final encryptionHelper = EncryptionHelper('S3cur3P@ssw0rd123!'); // Encryption password
 
   @override
   void initState() {
@@ -43,20 +62,20 @@ class _EditEquipmentPageState extends State<EditEquipmentPage> {
 
     // Generate new QR data with the updated values
     String generatedQRData = jsonEncode(updatedData);
+    String encryptedQRData = encryptionHelper.encryptText(generatedQRData); // Encrypt the QR data
 
     try {
       // Update the Firestore document with the new data
       await FirebaseFirestore.instance.collection('equipment').doc(widget.documentId).update(updatedData);
 
-      // Also update the QR data field with the new QR string
-      await FirebaseFirestore.instance.collection('equipment').doc(widget.documentId).update({'qr_data': generatedQRData});
+      // Also update the QR data field with the encrypted QR string
+      await FirebaseFirestore.instance.collection('equipment').doc(widget.documentId).update({'qr_data': encryptedQRData});
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Data updated successfully!")),
       );
       Navigator.pop(context, updatedData);
     } catch (e) {
-      // Catch specific exceptions
       print("Error updating document: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to update data: $e")),

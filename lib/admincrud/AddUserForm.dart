@@ -161,7 +161,7 @@ class _AddUserFormState extends State<AddUserForm> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                child: const Text('Add User'),
+                child: const Text('Add User',style: TextStyle(color: Colors.white),),
               ),
             ],
           ),

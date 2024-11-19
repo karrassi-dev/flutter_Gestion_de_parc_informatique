@@ -205,8 +205,8 @@ import 'package:fl_chart/fl_chart.dart';
 
 class EquipmentTypePieChart extends StatefulWidget {
   final Map<String, int> data;
-  final Function(String) onSectionTapped; // Callback for section selection
-  final Function(String) onLegendTapped;  // Callback for legend selection
+  final Function(String) onSectionTapped; 
+  final Function(String) onLegendTapped;  
 
   EquipmentTypePieChart(this.data, {required this.onSectionTapped, required this.onLegendTapped});
 
@@ -265,7 +265,7 @@ class _EquipmentTypePieChartState extends State<EquipmentTypePieChart> {
                     widget.onSectionTapped(selectedType); // Notify dashboard
                   } else {
                     _focusedIndex = null;
-                    widget.onSectionTapped(''); // Clear selection when no section is touched
+                    widget.onSectionTapped(''); 
                   }
                 });
               },
@@ -275,8 +275,8 @@ class _EquipmentTypePieChartState extends State<EquipmentTypePieChart> {
         GestureDetector(
           onTap: () {
             setState(() {
-              _focusedIndex = null; // Reset focused index
-              widget.onSectionTapped(''); // Clear filter in the dashboard
+              _focusedIndex = null; 
+              widget.onSectionTapped(''); 
             });
           },
           child: Column(
@@ -361,7 +361,7 @@ class _EquipmentTypePieChartState extends State<EquipmentTypePieChart> {
         onTap: () {
           setState(() {
             _focusedIndex = index;
-            widget.onLegendTapped(key); // Trigger legend callback
+            widget.onLegendTapped(key); 
           });
         },
         child: Padding(

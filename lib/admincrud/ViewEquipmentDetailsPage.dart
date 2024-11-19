@@ -7,6 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
+import 'package:intl/intl.dart'; // Add this for date formatting
+
 
 class ViewEquipmentDetailsPage extends StatefulWidget {
   final QueryDocumentSnapshot equipment;
@@ -110,6 +112,89 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
     return match != null ? match.group(0)! : processor;
   }
 
+  Future<void> _downloadQRCode(String? qrData, BuildContext context) async {
+  if (qrData == null || qrData.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("QR code data is not available")),
+    );
+    return;
+  }
+
+  final status = await Permission.storage.request();
+  if (status.isGranted) {
+    try {
+      final qrValidationResult = QrValidator.validate(
+        data: qrData,
+        version: QrVersions.auto,
+        errorCorrectionLevel: QrErrorCorrectLevel.H,
+      );
+
+      if (qrValidationResult.status == QrValidationStatus.valid) {
+        final qrPainter = QrPainter.withQr(
+          qr: qrValidationResult.qrCode!,
+          color: const Color(0xFF000000),
+          gapless: true,
+          emptyColor: Colors.white,
+        );
+
+        // Generate the QR code image without padding
+        const double qrImageSize = 400.0; // Larger QR code for better readability
+        final ui.Image qrImage = await qrPainter.toImage(qrImageSize.toDouble());
+
+        // Define the padding
+        const int padding = 20;
+        final int paddedWidth = qrImage.width + padding * 2;
+        final int paddedHeight = qrImage.height + padding * 2;
+
+        // Add padding around the QR code
+        final ui.PictureRecorder recorder = ui.PictureRecorder();
+        final Canvas canvas = Canvas(recorder, Rect.fromPoints(
+          const Offset(0, 0),
+          Offset(paddedWidth.toDouble(), paddedHeight.toDouble()),
+        ));
+        
+        // Fill background with white
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, paddedWidth.toDouble(), paddedHeight.toDouble()),
+          Paint()..color = Colors.white,
+        );
+        
+        // Draw the QR code centered with padding
+        canvas.drawImage(qrImage, Offset(padding.toDouble(), padding.toDouble()), Paint());
+
+        // Convert the canvas with padding to an image
+        final ui.Image finalImage = await recorder.endRecording().toImage(paddedWidth, paddedHeight);
+        final ByteData? byteData = await finalImage.toByteData(format: ui.ImageByteFormat.png);
+        final Uint8List pngBytes = byteData!.buffer.asUint8List();
+
+        // Save the image
+        final String timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+        final directory = await getExternalStorageDirectory();
+        final file = File('${directory!.path}/qr_code_$timestamp.png');
+        await file.writeAsBytes(pngBytes);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("QR Code saved to ${file.path}")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to generate QR Code")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error saving QR code: $e")),
+      );
+    }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Storage permission denied")),
+    );
+  }
+}
+
+
+
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic>? equipmentData = widget.equipment.data() as Map<String, dynamic>?;
@@ -150,7 +235,7 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: _printEquipmentDetails,
-                child: const Text("Print Equipment Details"),
+                child: const Text("Print qr code"),
               ),
             ],
           ),
@@ -205,59 +290,6 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
       ),
     );
   }
-
-  Future<void> _downloadQRCode(String? qrData, BuildContext context) async {
-    if (qrData == null || qrData.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("QR code data is not available")),
-      );
-      return;
-    }
-
-    final status = await Permission.storage.request();
-    if (status.isGranted) {
-      try {
-        final qrValidationResult = QrValidator.validate(
-          data: qrData,
-          version: QrVersions.auto,
-          errorCorrectionLevel: QrErrorCorrectLevel.H,
-        );
-
-        if (qrValidationResult.status == QrValidationStatus.valid) {
-          final qrPainter = QrPainter.withQr(
-            qr: qrValidationResult.qrCode!,
-            color: const Color(0xFF000000),
-            gapless: true,
-            emptyColor: Colors.white,
-          );
-
-          final ui.Image image = await qrPainter.toImage(200);
-          final ByteData? byteData =
-              await image.toByteData(format: ui.ImageByteFormat.png);
-          final Uint8List pngBytes = byteData!.buffer.asUint8List();
-
-          final directory = await getExternalStorageDirectory();
-          final file = File('${directory!.path}/qr_code.png');
-          await file.writeAsBytes(pngBytes);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("QR Code saved to ${file.path}")),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Failed to generate QR Code")),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving QR code: $e")),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Storage permission denied")),
-      );
-    }
-  }
 }
+
 

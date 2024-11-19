@@ -2,11 +2,34 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:screenshot/screenshot.dart'; // Import screenshot package
+import 'package:screenshot/screenshot.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:crypto/crypto.dart';
+
+class EncryptionHelper {
+  final encrypt.Key key;
+  final encrypt.IV iv;
+
+  EncryptionHelper(String password)
+      : key = encrypt.Key.fromUtf8(md5.convert(utf8.encode(password)).toString()),
+        iv = encrypt.IV.fromUtf8('16-Bytes---IVKey'); // Fixed IV for consistent encryption/decryption
+
+  String encryptText(String text) {
+    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    final encrypted = encrypter.encrypt(text, iv: iv);
+    return encrypted.base64;
+  }
+
+  String decryptText(String encryptedText) {
+    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    final decrypted = encrypter.decrypt64(encryptedText, iv: iv);
+    return decrypted;
+  }
+}
 
 class RegisterEquipment extends StatefulWidget {
   const RegisterEquipment({super.key});
@@ -18,9 +41,9 @@ class RegisterEquipment extends StatefulWidget {
 class _RegisterEquipmentState extends State<RegisterEquipment> {
   final PageController _pageController = PageController();
   final _formKey = GlobalKey<FormState>();
-
-  // Screenshot controller for QR code download
   final ScreenshotController _screenshotController = ScreenshotController();
+
+  int currentPageIndex = 0;
 
   // Controllers for all fields
   final TextEditingController startTimeController = TextEditingController();
@@ -35,6 +58,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   final TextEditingController processorController = TextEditingController();
   final TextEditingController osController = TextEditingController();
   final TextEditingController ramController = TextEditingController();
+  final TextEditingController storageController = TextEditingController();
   final TextEditingController externalScreenController = TextEditingController();
   final TextEditingController screenBrandController = TextEditingController();
   final TextEditingController screenSerialNumberController = TextEditingController();
@@ -42,17 +66,29 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   final TextEditingController statusController = TextEditingController();
   final TextEditingController inventoryNumberLptController = TextEditingController();
 
-  int currentPageIndex = 0;
   bool _isWirelessMouse = false;
   bool _isAdditionalFieldsVisible = false;
-  String? qrData; // Variable to store QR code data
+  String? qrData;
 
   final CollectionReference equipmentCollection = FirebaseFirestore.instance.collection('equipment');
+  final encryptionHelper = EncryptionHelper('S3cur3P@ssw0rd123!'); // Encryption password
 
   final List<String> typeOptions = [
-    'imprimante', 'avaya', 'point d’access', 'switch', 'DVR', 'TV',
-    'scanner', 'routeur', 'balanceur', 'standard téléphonique',
-    'data show', 'desktop', 'laptop'
+    'Imprimante',
+    'Avaya',
+    'Point d’access',
+    'Switch',
+    'DVR',
+    'TV',
+    'Scanner',
+    'Routeur',
+    'Balanceur',
+    'Standard Téléphonique',
+    'Data Show',
+    'Desktop',
+    'Laptop',
+    'laptop',
+    'Notebook'
   ];
 
   Future<void> registerEquipment() async {
@@ -60,7 +96,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
       User? currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser != null) {
-        // Create a map for the equipment data
+        // Collect equipment data from form fields
         Map<String, dynamic> equipmentData = {
           'start_time': startTimeController.text,
           'end_time': endTimeController.text,
@@ -74,6 +110,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
           'processor': processorController.text,
           'os': osController.text,
           'ram': ramController.text,
+          'storage': storageController.text,
           'wireless_mouse': _isWirelessMouse ? 'Oui' : 'Non',
           if (typeController.text == 'desktop' || typeController.text == 'laptop') ...{
             if (_isAdditionalFieldsVisible) ...{
@@ -90,17 +127,18 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
           DocumentReference newDocRef = await equipmentCollection.add(equipmentData);
 
           // Add the document ID to the equipment data for QR code
-          equipmentData['document_id'] = newDocRef.id; // Add the document ID
+          equipmentData['document_id'] = newDocRef.id;
 
-          // Generate QR Code with equipment data as JSON string including document ID
-          String generatedQRData = jsonEncode(equipmentData);
+          // Generate QR Data and Encrypt it
+          String qrDataPlain = jsonEncode(equipmentData);
+          String encryptedQRData = encryptionHelper.encryptText(qrDataPlain);
 
-          // Update the QR data to include the generated QR data
-          await newDocRef.update({'qr_data': generatedQRData}); // Store the generated QR data in Firestore
+          // Update the Firestore document with encrypted QR data
+          await newDocRef.update({'qr_data': encryptedQRData});
 
           // Update local state for QR code display
           setState(() {
-            qrData = generatedQRData;
+            qrData = encryptedQRData;
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -120,7 +158,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   Future<void> _downloadQRCode() async {
     if (qrData == null) return;
 
-    final Uint8List? imageBytes = await _screenshotController.capture();
+    final Uint8List? imageBytes = await _screenshotController.capture(pixelRatio: 1.0);
     if (imageBytes != null) {
       final directory = await getApplicationDocumentsDirectory();
       final filePath = '${directory.path}/qr_code.png';
@@ -248,10 +286,6 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text("Register Equipment", style: TextStyle(fontWeight: FontWeight.bold)),
-      //   backgroundColor: Colors.deepPurple,
-      //),
       body: Form(
         key: _formKey,
         child: PageView(
@@ -262,13 +296,13 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  buildTextField(startTimeController, "heure de debut", Icons.access_time),
+                  buildTextField(startTimeController, "Heure de début", Icons.access_time),
                   const SizedBox(height: 20),
-                  buildTextField(endTimeController, "heure de fin", Icons.access_time_filled),
+                  buildTextField(endTimeController, "Heure de fin", Icons.access_time_filled),
                   const SizedBox(height: 20),
-                  buildTextField(emailController, "Address de messagerie", Icons.email),
+                  buildTextField(emailController, "Adresse de messagerie", Icons.email),
                   const SizedBox(height: 20),
-                  buildTextField(nameController, "nom", Icons.person),
+                  buildTextField(nameController, "Nom", Icons.person),
                   const SizedBox(height: 20),
                   buildDropdown(typeOptions, typeController, "Type"),
                 ],
@@ -278,19 +312,21 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  buildTextField(userController, "utilisateur", Icons.person_outline),
+                  buildTextField(userController, "Utilisateur", Icons.person_outline),
                   const SizedBox(height: 20),
-                  buildTextField(brandController, "marque", Icons.branding_watermark),
+                  buildTextField(brandController, "Marque", Icons.branding_watermark),
                   const SizedBox(height: 20),
-                  buildTextField(referenceController, "Reference", Icons.book),
+                  buildTextField(referenceController, "Référence", Icons.book),
                   const SizedBox(height: 20),
-                  buildTextField(serialNumberController, "numero de serie", Icons.confirmation_number),
+                  buildTextField(serialNumberController, "Numéro de série", Icons.confirmation_number),
                   const SizedBox(height: 20),
-                  buildTextField(processorController, "composant - processeur", Icons.memory),
+                  buildTextField(processorController, "Processeur", Icons.memory),
                   const SizedBox(height: 20),
-                  buildTextField(osController, "system d'exploitation", Icons.computer),
+                  buildTextField(osController, "Système d'exploitation", Icons.computer),
                   const SizedBox(height: 20),
                   buildTextField(ramController, "RAM (en Go)", Icons.memory),
+                  const SizedBox(height: 20),
+                  buildTextField(storageController, "STORAGE (en Go)", Icons.storage),
                   const SizedBox(height: 20),
                   buildCheckbox("Souris sans fil", _isWirelessMouse, (value) {
                     setState(() {
@@ -306,7 +342,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                 children: [
                   if (typeController.text == 'desktop' || typeController.text == 'laptop') ...[
                     buildCheckbox(
-                      "have a screen",
+                      "Avoir un écran externe",
                       _isAdditionalFieldsVisible,
                       (bool? value) {
                         setState(() {
@@ -316,18 +352,18 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                     ),
                   ],
                   if (_isAdditionalFieldsVisible) ...[
-                    buildTextField(externalScreenController, "Ecran externe", Icons.desktop_windows, required: true),
+                    buildTextField(externalScreenController, "Écran externe", Icons.desktop_windows),
                     const SizedBox(height: 20),
-                    buildTextField(screenBrandController, "Marque de l'ecran", Icons.tv, required: true),
+                    buildTextField(screenBrandController, "Marque de l'écran", Icons.tv),
                     const SizedBox(height: 20),
-                    buildTextField(screenSerialNumberController, "Numéro de série de l'écran", Icons.confirmation_number, required: true),
+                    buildTextField(screenSerialNumberController, "Numéro de série de l'écran", Icons.confirmation_number),
                     const SizedBox(height: 20),
-                    buildTextField(inventoryNumberEcrController, "N° inventaire ECR", Icons.category, required: true),
+                    buildTextField(inventoryNumberEcrController, "N° d'inventaire ECR", Icons.category),
                     const SizedBox(height: 20),
                   ],
                   buildTextField(statusController, "État", Icons.assignment_turned_in),
                   const SizedBox(height: 20),
-                  buildTextField(inventoryNumberLptController, "N° inventaire LPT", Icons.category),
+                  buildTextField(inventoryNumberLptController, "N° d'inventaire LPT", Icons.category),
                 ],
               ),
             ),
@@ -373,9 +409,6 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                     onPressed: _downloadQRCode,
                     icon: const Icon(Icons.download),
                     label: const Text("Download QR Code"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                    ),
                   ),
                 ],
               ),
@@ -384,4 +417,3 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
     );
   }
 }
-

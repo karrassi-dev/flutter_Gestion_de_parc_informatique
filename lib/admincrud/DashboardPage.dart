@@ -1,118 +1,10 @@
-/*
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import './chart/requests_over_time_chart.dart';
-import './chart/equipment_type_pie_chart.dart';
-import './chart/status_bar_chart.dart';
-import './chart/requester_bar_chart.dart';
-
-Future<Map<String, dynamic>> fetchChartData() async {
-  QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('equipmentRequests').get();
-
-  List<Map<String, dynamic>> requests = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-
-  Map<String, int> equipmentTypeCounts = {};
-  Map<String, int> statusCounts = {};
-  Map<String, int> requesterCounts = {};
-  Map<String, int> requestsOverTime = {};
-
-  for (var request in requests) {
-    String equipmentType = request['equipmentType'] ?? 'Unknown';
-    equipmentTypeCounts[equipmentType] = (equipmentTypeCounts[equipmentType] ?? 0) + 1;
-
-    String status = request['status'] ?? 'Unknown';
-    statusCounts[status] = (statusCounts[status] ?? 0) + 1;
-
-    String requester = request['requester'] ?? 'Unknown';
-    requesterCounts[requester] = (requesterCounts[requester] ?? 0) + 1;
-
-    String requestMonth = (request['requestDate'] as Timestamp).toDate().toString().substring(0, 7);
-    requestsOverTime[requestMonth] = (requestsOverTime[requestMonth] ?? 0) + 1;
-  }
-
-  final topRequesters = (requesterCounts.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value)))
-      .take(4)
-      .toList();
-
-  final topRequesterEmails = topRequesters.map((entry) {
-    final request = requests.firstWhere((req) => req['requester'] == entry.key, orElse: () => {});
-    return request['email'] as String? ?? 'No email';
-  }).toList();
-
-  return {
-    "equipmentTypeCounts": equipmentTypeCounts,
-    "statusCounts": statusCounts,
-    "requesterCounts": Map.fromEntries(topRequesters),
-    "requestsOverTime": requestsOverTime,
-    "topRequesterEmails": topRequesterEmails,
-  };
-}
-
-class DashboardPage extends StatelessWidget {
-  const DashboardPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text("Dashboard"),
-      //   backgroundColor: Colors.deepPurple,
-      // ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: fetchChartData(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
-
-          final data = snapshot.data!;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Requests Over Time", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 300, child: RequestsOverTimeChart()), // Pass only the chart
-                const SizedBox(height: 20),
-
-                const Text("Requests by Equipment Type", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 300, child: EquipmentTypePieChart(data['equipmentTypeCounts'])),
-                const SizedBox(height: 20),
-
-                const Text("Status of Requests", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(height: 300, child: StatusBarChart(data['statusCounts'])),
-                const SizedBox(height: 20),
-
-                const Text("Top Requesters", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                SizedBox(
-                  height: 300,
-                  child: RequesterBarChart(
-                    data['requesterCounts'],
-                    data['topRequesterEmails'] as List<String>,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-*/
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import './chart/equipment_type_pie_chart.dart';
 import './chart/status_bar_chart.dart';
 import './chart/requester_bar_chart.dart';
+import './chart/RequestsChart.dart';
+import './chart/DashboardCards.dart'; // Import DashboardCards
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
@@ -142,6 +34,7 @@ class _DashboardPageState extends State<DashboardPage> {
       statusCounts[status] = (statusCounts[status] ?? 0) + 1;
       String requester = request['requester'] ?? 'Unknown';
       requesterCounts[requester] = (requesterCounts[requester] ?? 0) + 1;
+
       String requestMonth = (request['requestDate'] as Timestamp).toDate().toString().substring(0, 7);
       requestsOverTime[requestMonth] = (requestsOverTime[requestMonth] ?? 0) + 1;
     }
@@ -164,6 +57,11 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text("Admin Dashboard"),
+      //   backgroundColor: Colors.blueAccent,
+      //   elevation: 2,
+      // ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: fetchFilteredChartData(selectedType),
         builder: (context, snapshot) {
@@ -180,29 +78,32 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                DashboardCards(), // Display summary cards at the top
+                const SizedBox(height: 16),
+
+                // Chart Sections
                 const Text("Requests by Equipment Type", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 SizedBox(
-  height: 400,
-  child: EquipmentTypePieChart(
-    data['equipmentTypeCounts'],
-    onSectionTapped: (type) {
-      setState(() {
-        selectedType = type.isEmpty ? null : type; // Reset filter if type is empty
-      });
-    },
-    onLegendTapped: (type) {
-      setState(() {
-        selectedType = type.isEmpty ? null : type;
-      });
-    },
-  ),
-
+                  height: 300,
+                  child: EquipmentTypePieChart(
+                    data['equipmentTypeCounts'],
+                    onSectionTapped: (type) {
+                      setState(() {
+                        selectedType = type.isEmpty ? null : type;
+                      });
+                    },
+                    onLegendTapped: (type) {
+                      setState(() {
+                        selectedType = type.isEmpty ? null : type;
+                      });
+                    },
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 const Text("Status of Requests", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 SizedBox(height: 300, child: StatusBarChart(data['statusCounts'])),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 const Text("Top Requesters", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 SizedBox(
@@ -212,6 +113,13 @@ class _DashboardPageState extends State<DashboardPage> {
                     data['topRequesterEmails'] as List<String>,
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                const Text("Requests Over Time", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                SizedBox(
+                  height: 300,
+                  child: RequestsChart(),
+                ),
               ],
             ),
           );
@@ -220,6 +128,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 }
+
 
 
 

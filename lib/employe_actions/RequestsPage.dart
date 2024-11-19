@@ -18,8 +18,21 @@ class _RequestsPageState extends State<RequestsPage> {
   String? equipmentTypeFilter;
 
   final List<String> equipmentTypes = [
-    'Imprimante', 'Avaya', 'Point d’access', 'Switch', 'DVR', 'TV', 'Scanner',
-    'Routeur', 'Balanceur', 'Standard Téléphonique', 'Data Show', 'Desktop', 'Laptop','laptop'
+    'Imprimante',
+    'Avaya',
+    'Point d’access',
+    'Switch',
+    'DVR',
+    'TV',
+    'Scanner',
+    'Routeur',
+    'Balanceur',
+    'Standard Téléphonique',
+    'Data Show',
+    'Desktop',
+    'Laptop',
+    'laptop',
+    'Notebook'
   ];
 
   @override
@@ -37,186 +50,215 @@ class _RequestsPageState extends State<RequestsPage> {
 
       setState(() {
         availableEquipment = equipmentSnapshot.docs;
-        selectedEquipment = null; // Reset selected equipment if type changes
+        selectedEquipment = null;
       });
     } catch (e) {
       print("Error fetching equipment: $e");
     }
   }
 
-  void _showAssignEquipmentDialog(String requestId, String utilisateur, String department) {
+  void _showAssignEquipmentDialog(
+      String requestId, String utilisateur, String department) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text("Assign Equipment"),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+  builder: (context, setDialogState) {
+    return Dialog(
+      insetPadding: EdgeInsets.symmetric(horizontal: 20), // Reduced horizontal padding to give more width
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.95, // Set dialog width to 95% of screen width
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Assign Equipment",
+                  style: Theme.of(context).textTheme.titleLarge, // Updated to titleLarge
+                ),
+                const SizedBox(height: 20),
+                Text("Utilisateur: $utilisateur"),
+                const SizedBox(height: 10),
+                const Text("Select equipment to assign:"),
+                const SizedBox(height: 10),
+                // Equipment Type Dropdown
+                DropdownButtonFormField<String>(
+                  hint: const Text("Select Equipment Type"),
+                  value: selectedType,
+                  onChanged: (value) async {
+                    setState(() {
+                      selectedType = value;
+                    });
+                    await _fetchAvailableEquipment(type: value);
+                    setDialogState(() {
+                      selectedEquipment = null; // Reset selected equipment
+                    });
+                  },
+                  items: equipmentTypes.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(type, overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 10),
+                // Select Equipment Dropdown
+                DropdownButtonFormField<String>(
+                  hint: const Text("Select Equipment"),
+                  value: selectedEquipment,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedEquipment = value;
+                    });
+                  },
+                  items: availableEquipment.map((document) {
+                    final equipmentData = document.data() as Map<String, dynamic>;
+                    return DropdownMenuItem<String>(
+                      value: document.id,
+                      child: Text(
+                        "${equipmentData['brand']} - (${equipmentData['type']})",
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text("Utilisateur: $utilisateur"),
-                    const SizedBox(height: 10),
-                    const Text("Select equipment to assign:"),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      hint: const Text("Select Equipment Type"),
-                      value: selectedType,
-                      onChanged: (value) async {
-                        setState(() {
-                          selectedType = value;
-                        });
-                        await _fetchAvailableEquipment(type: value);
-                        setDialogState(() {
-                          selectedEquipment = null; // Reset selected equipment in dialog state
-                        });
+                    TextButton(
+                      child: const Text("Cancel"),
+                      onPressed: () {
+                        Navigator.of(context).pop();
                       },
-                      items: equipmentTypes.map((type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        );
-                      }).toList(),
                     ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      hint: const Text("Select Equipment"),
-                      value: selectedEquipment,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          selectedEquipment = value;
-                        });
-                      },
-                      items: availableEquipment.map((document) {
-                        final equipmentData = document.data() as Map<String, dynamic>;
-                        return DropdownMenuItem<String>(
-                          value: document.id,
-                          child: Text("${equipmentData['brand']} - (${equipmentData['type']})"),
-                        );
-                      }).toList(),
+                    ElevatedButton(
+                      child: const Text("Assign"),
+                      onPressed: selectedEquipment != null
+                          ? () async {
+                              Navigator.of(context).pop();
+                              await _assignEquipmentToRequest(requestId, utilisateur, department);
+                              await FirebaseFirestore.instance
+                                  .collection('equipmentRequests')
+                                  .doc(requestId)
+                                  .update({
+                                'isRead': true,
+                                'status': 'Approved',
+                              });
+                            }
+                          : null,
                     ),
                   ],
                 ),
-              ),
-              actions: [
-                TextButton(
-                  child: const Text("Cancel"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                TextButton(
-                  child: const Text("Assign"),
-                  onPressed: selectedEquipment != null
-                      ? () async {
-                          Navigator.of(context).pop();
-                          await _assignEquipmentToRequest(requestId, utilisateur, department);
-                          await FirebaseFirestore.instance.collection('equipmentRequests').doc(requestId).update({
-                            'isRead': true,
-                            'status':'Approved',
-                          });
-                        }
-                      : null,
-                ),
               ],
-            );
-          },
-        );
+            ),
+          ),
+        ),
+      ),
+    );
+  },
+);
+
       },
     );
   }
 
-  Future<void> _assignEquipmentToRequest(String requestId, String utilisateur, String department) async {
-  if (selectedEquipment == null) return;
+  Future<void> _assignEquipmentToRequest(
+      String requestId, String utilisateur, String department) async {
+    if (selectedEquipment == null) return;
 
-  try {
-    final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
-        .collection('equipment')
-        .doc(selectedEquipment)
-        .get();
+    try {
+      final DocumentSnapshot equipmentDoc = await FirebaseFirestore.instance
+          .collection('equipment')
+          .doc(selectedEquipment)
+          .get();
 
-    final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
-    final String previousUser = equipmentData['user'] ?? 'No previous user';
-    final Timestamp? lastAssignedDate = equipmentData['lastAssignedDate'];
-    final String? previousAdmin = equipmentData['assignedBy'];
+      final equipmentData = equipmentDoc.data() as Map<String, dynamic>;
+      final String previousUser = equipmentData['user'] ?? 'No previous user';
+      final Timestamp? lastAssignedDate = equipmentData['lastAssignedDate'];
+      final String? previousAdmin = equipmentData['assignedBy'];
 
-    final DocumentSnapshot requestDoc = await FirebaseFirestore.instance
-        .collection('equipmentRequests')
-        .doc(requestId)
-        .get();
+      final DocumentSnapshot requestDoc = await FirebaseFirestore.instance
+          .collection('equipmentRequests')
+          .doc(requestId)
+          .get();
 
-    final requestData = requestDoc.data() as Map<String, dynamic>;
-    final String site = requestData['site'];
+      final requestData = requestDoc.data() as Map<String, dynamic>;
+      final String site = requestData['site'];
 
-    Timestamp now = Timestamp.now();
+      Timestamp now = Timestamp.now();
 
-    // Update equipmentRequests with assignment details
-    await FirebaseFirestore.instance
-        .collection('equipmentRequests')
-        .doc(requestId)
-        .update({
-      'assignedEquipment': selectedEquipment,
-      'assignedEquipmentDetails': {
-        'brand': equipmentData['brand'],
-        'reference': equipmentData['reference'],
-        'serial_number': equipmentData['serial_number'],
-      },
-      'isAssigned': true,
-      'assignedBy': adminEmail,
-      'assignedByEmail': FirebaseAuth.instance.currentUser?.email,
-      'assignedDate': now,
-    });
-
-    // Update equipment collection
-    await FirebaseFirestore.instance
-        .collection('equipment')
-        .doc(selectedEquipment)
-        .update({
-      'user': utilisateur,
-      'department': department,
-      'site': site,
-      'assignedBy': adminEmail,
-      'lastAssignedDate': now,
-    });
-
-    // Store previous user history if a previous assignment exists
-    if (lastAssignedDate != null) {
-      final int durationInDays = now.toDate().difference(lastAssignedDate.toDate()).inDays;
-
+      // Update equipmentRequests with assignment details
       await FirebaseFirestore.instance
-          .collection('HistoryOfEquipment')
-          .doc(equipmentData['serial_number'])
-          .set({
-        'assignments': FieldValue.arrayUnion([
-          {
-            'user': previousUser,
-            'department': equipmentData['department'],
-            'admin': previousAdmin ?? 'Unknown',
-            'assignmentDate': lastAssignedDate,
-            'durationInDays': durationInDays,
-          }
-        ])
-      }, SetOptions(merge: true));
+          .collection('equipmentRequests')
+          .doc(requestId)
+          .update({
+        'assignedEquipment': selectedEquipment,
+        'assignedEquipmentDetails': {
+          'brand': equipmentData['brand'],
+          'reference': equipmentData['reference'],
+          'serial_number': equipmentData['serial_number'],
+        },
+        'isAssigned': true,
+        'assignedBy': adminEmail,
+        'assignedByEmail': FirebaseAuth.instance.currentUser?.email,
+        'assignedDate': now,
+      });
+
+      // Update equipment collection
+      await FirebaseFirestore.instance
+          .collection('equipment')
+          .doc(selectedEquipment)
+          .update({
+        'user': utilisateur,
+        'department': department,
+        'site': site,
+        'assignedBy': adminEmail,
+        'lastAssignedDate': now,
+      });
+
+      // Store previous user history if a previous assignment exists
+      if (lastAssignedDate != null) {
+        final int durationInDays =
+            now.toDate().difference(lastAssignedDate.toDate()).inDays;
+
+        await FirebaseFirestore.instance
+            .collection('HistoryOfEquipment')
+            .doc(equipmentData['serial_number'])
+            .set({
+          'assignments': FieldValue.arrayUnion([
+            {
+              'user': previousUser,
+              'department': equipmentData['department'],
+              'admin': previousAdmin ?? 'Unknown',
+              'assignmentDate': lastAssignedDate,
+              'durationInDays': durationInDays,
+            }
+          ])
+        }, SetOptions(merge: true));
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Equipment assigned successfully!")),
+      );
+
+      setState(() {
+        selectedEquipment = null;
+      });
+    } catch (e) {
+      print("Error assigning equipment: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error assigning equipment: $e")),
+      );
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Equipment assigned successfully!")),
-    );
-
-    setState(() {
-      selectedEquipment = null;
-    });
-  } catch (e) {
-    print("Error assigning equipment: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error assigning equipment: $e")),
-    );
   }
-}
 
-  Future<void> _storeAssignmentInHistory(
-      String serialNumber, String user, String department, String adminEmail) async {
+  Future<void> _storeAssignmentInHistory(String serialNumber, String user,
+      String department, String adminEmail) async {
     try {
       final documentRef = FirebaseFirestore.instance
           .collection('HistoryOfEquipment')
@@ -245,7 +287,7 @@ class _RequestsPageState extends State<RequestsPage> {
     setState(() {});
   }
 
-  // Main widget build remains unchanged
+  // Main widget build
   // ...
   @override
   Widget build(BuildContext context) {
@@ -317,8 +359,21 @@ class _RequestsPageState extends State<RequestsPage> {
                       equipmentTypeFilter = value;
                     });
                   },
-                  items: ['Imprimante', 'Avaya', 'Point d’access', 'Switch', 'DVR', 'TV', 'Scanner', 
-                            'Routeur', 'Balanceur', 'Standard Téléphonique', 'Data Show', 'Desktop', 'Laptop']
+                  items: [
+                    'Imprimante',
+                    'Avaya',
+                    'Point d’access',
+                    'Switch',
+                    'DVR',
+                    'TV',
+                    'Scanner',
+                    'Routeur',
+                    'Balanceur',
+                    'Standard Téléphonique',
+                    'Data Show',
+                    'Desktop',
+                    'Laptop'
+                  ]
                       .map((type) => DropdownMenuItem<String>(
                             value: type,
                             child: Text(type),
@@ -360,15 +415,17 @@ class _RequestsPageState extends State<RequestsPage> {
 
                 if (isReadFilter != null) {
                   filteredRequests = filteredRequests.where((doc) {
-                    return (doc.data() as Map<String, dynamic>).containsKey('isRead') &&
-                           (doc['isRead'] == isReadFilter);
+                    return (doc.data() as Map<String, dynamic>)
+                            .containsKey('isRead') &&
+                        (doc['isRead'] == isReadFilter);
                   }).toList();
                 }
 
                 if (isAssignedFilter != null) {
                   filteredRequests = filteredRequests.where((doc) {
-                    return (doc.data() as Map<String, dynamic>).containsKey('isAssigned') &&
-                           (doc['isAssigned'] == isAssignedFilter);
+                    return (doc.data() as Map<String, dynamic>)
+                            .containsKey('isAssigned') &&
+                        (doc['isAssigned'] == isAssignedFilter);
                   }).toList();
                 }
 
@@ -388,7 +445,8 @@ class _RequestsPageState extends State<RequestsPage> {
 
                     return Card(
                       elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -400,10 +458,8 @@ class _RequestsPageState extends State<RequestsPage> {
                             Text("Status: ${requestData['status']}"),
                             Text(
                                 "Requested on: ${requestData['requestDate'].toDate()}"),
-                            Text(
-                                "User: ${requestData['utilisateur']}"),
-                            Text(
-                                "Type: ${requestData['equipmentType']}"),
+                            Text("User: ${requestData['utilisateur']}"),
+                            Text("Type: ${requestData['equipmentType']}"),
                             if (requestData['isAssigned'] == true) ...[
                               const Text("Assigned",
                                   style: TextStyle(color: Colors.green)),
@@ -414,12 +470,19 @@ class _RequestsPageState extends State<RequestsPage> {
                         ),
                         trailing: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: requestData['isAssigned'] == true ? Colors.green : Colors.blue,
+                            backgroundColor: requestData['isAssigned'] == true
+                                ? Colors.green
+                                : Colors.blue,
                           ),
                           onPressed: requestData['isAssigned'] == true
                               ? null
-                              : () => _showAssignEquipmentDialog(request.id, requestData['utilisateur'], requestData['department']),
-                          child: Text(requestData['isAssigned'] == true ? "Assigned" : "Assign Equipment"),
+                              : () => _showAssignEquipmentDialog(
+                                  request.id,
+                                  requestData['utilisateur'],
+                                  requestData['department']),
+                          child: Text(requestData['isAssigned'] == true
+                              ? "Assigned"
+                              : "Assign Equipment"),
                         ),
                       ),
                     );
