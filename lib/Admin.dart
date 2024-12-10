@@ -39,7 +39,6 @@ class _AdminState extends State<Admin> {
     });
   }
 
-  // This function is used to update the index when a button is tapped.
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -50,12 +49,12 @@ class _AdminState extends State<Admin> {
   Widget build(BuildContext context) {
     // Define each page corresponding to the button in the bottom bar.
     final List<Widget> _pages = [
-      DashboardPage(),          // 0: Dashboard with charts
-      RegisterEquipment(),      // 1: Register Equipment
-      UpdaterEquipment(),       // 2: Update & Delete Equipment
-      AddUserForm(),            // 3: Add New User
-      EquipmentHistoryPage(),   // 4: View Equipment History
-      QRCodeScannerPage(),      // 5: Scan QR Code
+      DashboardPage(),
+      RegisterEquipment(),
+      UpdaterEquipment(),
+      AddUserForm(),
+      EquipmentHistoryPage(),
+      QRCodeScannerPage(),
     ];
 
     return Scaffold(
@@ -66,7 +65,7 @@ class _AdminState extends State<Admin> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Color(0xFF467F67),
         actions: [
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -118,7 +117,6 @@ class _AdminState extends State<Admin> {
         ],
       ),
       body: Center(
-        // Displays the currently selected page from the bottom navigation bar.
         child: _pages.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -150,7 +148,7 @@ class _AdminState extends State<Admin> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.deepPurple,
+        selectedItemColor: Color(0xff012F97),
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
       ),

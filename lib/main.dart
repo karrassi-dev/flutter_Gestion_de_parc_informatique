@@ -64,7 +64,6 @@ class _MyAppState extends State<MyApp> {
             String? role = snapshot.data!.get('role');
             String apiToken = 'sQtgkB5VdTuH0EKD6p830GWXEuAsntN3osiGW5OS'; 
 
-            // Fetch data from GLPI
             fetchGLPIComputers(apiToken);
 
             if (role == 'Admin') {
@@ -92,7 +91,6 @@ class _MyAppState extends State<MyApp> {
           'Content-Type': 'application/json',
         },
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
@@ -118,6 +116,8 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+
+
   Future<void> sendNotification(String targetDeviceToken, String title, String body) async {
     try {
       await fcmService.sendMessage(targetDeviceToken, title, body);
@@ -126,4 +126,5 @@ class _MyAppState extends State<MyApp> {
       print('Error sending notification: $error');
     }
   }
+
 }

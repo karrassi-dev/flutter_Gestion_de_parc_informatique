@@ -4,21 +4,20 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-class EmployRequestsPage extends StatefulWidget {
+class OuvrierRequestPage extends StatefulWidget {
   @override
-  _EmployRequestsPageState createState() => _EmployRequestsPageState();
+  _OuvrierRequestPageState createState() => _OuvrierRequestPageState();
 }
 
-class _EmployRequestsPageState extends State<EmployRequestsPage> {
+class _OuvrierRequestPageState extends State<OuvrierRequestPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
 
   String currentUserName = "";
   String currentEmail = "";
   String equipmentType = "Scanner";
-  String department = "";
-  String site = '';
-  String utilisateur = "";
+  String department = "DOSI";
+  String site = 'Agence Oujda';
   String additionalDetails = "";
   bool isLoading = true;
 
@@ -70,14 +69,14 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
+              children: const [
                 CircularProgressIndicator(),
                 SizedBox(width: 20),
                 Text("Submitting request...", style: TextStyle(fontSize: 16)),
@@ -102,7 +101,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
         'name': currentUserName,
         'email': currentEmail,
         'equipmentType': equipmentType,
-        'utilisateur': utilisateur,
+        'utilisateur': currentUserName, // Use the current user's name
         'department': department,
         'site': site,
         'additionalDetails': additionalDetails,
@@ -128,7 +127,7 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
         'requesterName': currentUserName,
         'requesterEmail': currentEmail,
         'equipmentType': equipmentType,
-        'utilisateur': utilisateur,
+        'utilisateur': currentUserName,
         'department': department,
         'site': site,
         'additionalDetails': additionalDetails,
@@ -148,29 +147,11 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
         print("Failed to send email notifications: ${response.body}");
       }
 
-      // Fetch all FCM tokens from adminFcmToken collection
-      QuerySnapshot fcmTokenSnapshot = await FirebaseFirestore.instance
-          .collection('adminFcmToken')
-          .get();
-
-      List<String> fcmTokens = fcmTokenSnapshot.docs
-          .map((doc) => doc['fcmToken'] as String)
-          .toList();
-
-      // Prepare the notification message
-      final String notificationMessage =
-          "New Equipment Request submitted by $currentUserName for $equipmentType.";
-
-      // Send notification to each FCM token
-      for (String token in fcmTokens) {
-        await sendNotification(token, notificationMessage);
-      }
-
       hideLoaderDialog(context);
 
       // Success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Request Submitted Successfully")),
+        const SnackBar(content: Text("Request Submitted Successfully")),
       );
 
       // Reset the form
@@ -181,30 +162,11 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
     }
   }
 
-  Future<void> sendNotification(String token, String message) async {
-    final response = await http.post(
-      Uri.parse('http://54.166.39.114:3000/send-notification'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'tokens': [token],
-        'message': message,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      print("Notification sent successfully");
-    } else {
-      print("Failed to send notification: ${response.body}");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Employee Requests"),
+        title: const Text("Ouvrier Requests"),
         backgroundColor: Color(0xFF467F67),
       ),
       body: LayoutBuilder(
@@ -232,20 +194,34 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                             children: [
                               Text(
                                 "Welcome, $currentUserName",
-                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 "Email: $currentEmail",
-                                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.grey[600]),
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
 
                               // Equipment type dropdown
                               DropdownButtonFormField<String>(
                                 value: equipmentType,
                                 items: [
-                                  'Imprimante', 'Avaya', 'Point d’access', 'Switch', 'DVR', 'TV', 'Scanner',
-                                  'Routeur', 'Balanceur', 'Standard Téléphonique', 'Data Show', 'Desktop', 'Laptop','Notebook'
+                                  'Imprimante',
+                                  'Avaya',
+                                  'Point d’access',
+                                  'Switch',
+                                  'DVR',
+                                  'TV',
+                                  'Scanner',
+                                  'Routeur',
+                                  'Balanceur',
+                                  'Standard Téléphonique',
+                                  'Data Show',
+                                  'Desktop',
+                                  'Laptop',
+                                  'Notebook'
                                 ].map((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,
@@ -257,39 +233,29 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                                     equipmentType = newValue!;
                                   });
                                 },
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Type of Equipment',
                                   border: OutlineInputBorder(),
                                 ),
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
 
-                              // Utilisateur text field
+                              // Display current user name as "Utilisateur" (non-editable)
                               TextFormField(
+                                initialValue: currentUserName,
+                                enabled: false,
                                 decoration: InputDecoration(
-                                  labelText: 'Utilisateur',
-                                  hintText: 'Entrez le nom et prénom',
-                                  border: OutlineInputBorder(),
+                                  labelText: currentUserName.isNotEmpty
+                                      ? currentUserName
+                                      : 'Utilisateur', // Fallback if name is not loaded
+                                  border: const OutlineInputBorder(),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter the name of the user who will use the equipment';
-                                  }
-                                  return null;
-                                },
-                                onChanged: (value) {
-                                  setState(() {
-                                    utilisateur = value;
-                                  });
-                                },
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
 
                               // Department dropdown
                               DropdownButtonFormField<String>(
-                                value: department.isEmpty
-                                    ? null
-                                    : department, // Initial value is null
+                                value: department,
                                 items: [
                                   'Maintenance',
                                   'Qualité',
@@ -319,23 +285,16 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                                     department = newValue!;
                                   });
                                 },
-                                decoration: InputDecoration(
-                                  labelText: 'Department',
+                                decoration: const InputDecoration(
+                                  labelText: 'Département/Service',
                                   border: OutlineInputBorder(),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please select a department';
-                                  }
-                                  return null;
-                                },
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
+
                               // Site dropdown
                               DropdownButtonFormField<String>(
-                                value: site.isEmpty
-                                    ? null
-                                    : site, // Initial value is null
+                                value: site,
                                 items: [
                                   'Agence Oujda',
                                   'Agence Agadir',
@@ -367,23 +326,18 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                                     site = newValue!;
                                   });
                                 },
-                                decoration: InputDecoration(
-                                  labelText: 'Site',
+                                decoration: const InputDecoration(
+                                  labelText: 'Site/Agence',
                                   border: OutlineInputBorder(),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please select a site';
-                                  }
-                                  return null;
-                                },
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
 
+                              // Additional Details text field
                               TextFormField(
-                                decoration: InputDecoration(
+                                maxLines: 3,
+                                decoration: const InputDecoration(
                                   labelText: 'Additional Details',
-                                  hintText: 'Provide any extra details here',
                                   border: OutlineInputBorder(),
                                 ),
                                 onChanged: (value) {
@@ -392,27 +346,24 @@ class _EmployRequestsPageState extends State<EmployRequestsPage> {
                                   });
                                 },
                               ),
-                              SizedBox(height: 20),
-                              Container(
-                                width: double.infinity, 
+                              const SizedBox(height: 20),
+
+                              // Submit button
+                              SizedBox(
+                                width: double.infinity,
                                 child: ElevatedButton(
                                   onPressed: submitRequest,
-                                  child: Text(
-                                    "Submit Request",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Color(0xff012F97),
-                                    padding: EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18.0),
-                                    ),
-                                    textStyle: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
+                                    padding: const EdgeInsets.all(15),
+                                  ),
+                                  child: const Text(
+                                    'Submit Request',
+                                    style: TextStyle(
+                                        fontSize: 18, color: Colors.white),
                                   ),
                                 ),
-                              )
+                              ),
                             ],
                           ),
                         ),

@@ -9,7 +9,7 @@ class MyRequestsPage extends StatefulWidget {
 
 class _MyRequestsPageState extends State<MyRequestsPage> {
   final String userEmail = FirebaseAuth.instance.currentUser?.email ?? '';
-  String filterStatus = 'all'; 
+  String filterStatus = 'all'; // Filter: all, assigned, not_assigned
   List<DocumentSnapshot> filteredRequests = [];
 
   @override
@@ -17,17 +17,17 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Mes Demandes"),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Color(0xFF467F67),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
               setState(() {
-                filterStatus = value; // Update the filter status
+                filterStatus = value;
               });
             },
             itemBuilder: (BuildContext context) {
               return [
-                const PopupMenuItem(value: 'all', child: Text("Tous")), // 'all' for "Tous" filter
+                const PopupMenuItem(value: 'all', child: Text("Tous")),
                 const PopupMenuItem(value: "assigned", child: Text("Assigné")),
                 const PopupMenuItem(value: "not_assigned", child: Text("Non Assigné")),
               ];
@@ -38,7 +38,7 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('equipmentRequests')
-            .where('requester', isEqualTo: userEmail) 
+            .where('requester', isEqualTo: userEmail)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -60,21 +60,17 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
             final requestData = request.data() as Map<String, dynamic>?;
             bool isAssigned = requestData?['isAssigned'] ?? false;
 
-            if (filterStatus == 'all') {
-              return true; 
-            } else if (filterStatus == "assigned") {
-              return isAssigned; 
-            } else if (filterStatus == "not_assigned") {
-              return !isAssigned; 
-            }
+            if (filterStatus == 'all') return true;
+            if (filterStatus == "assigned") return isAssigned;
+            if (filterStatus == "not_assigned") return !isAssigned;
             return true;
           }).toList();
 
-          // Sort  by request date (newest first)
+          // Sort requests by request date (newest first)
           filteredRequests.sort((a, b) {
             final dateA = (a.data() as Map<String, dynamic>)['requestDate'] as Timestamp;
             final dateB = (b.data() as Map<String, dynamic>)['requestDate'] as Timestamp;
-            return dateB.compareTo(dateA); // Sort by descending order
+            return dateB.compareTo(dateA);
           });
 
           return ListView.builder(
@@ -84,109 +80,156 @@ class _MyRequestsPageState extends State<MyRequestsPage> {
               final request = filteredRequests[index];
               final requestData = request.data() as Map<String, dynamic>?;
 
-              bool isAssigned = requestData?['isAssigned'] ?? false;
+              // Determine request type and status
+              String status = requestData?['status'] ?? 'unknown';
 
-              return FutureBuilder<QuerySnapshot>(
-                future: FirebaseFirestore.instance
-                    .collection('equipmentHistory')
-                    .where('requestId', isEqualTo: request.id) // requestId to fetch history
-                    .get(),
-                builder: (context, historySnapshot) {
-                  if (historySnapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (historySnapshot.hasError) {
-                    return const Text('Erreur lors de la récupération de l’historique des équipements');
-                  }
-
-                  final historyData = historySnapshot.data?.docs.isNotEmpty == true
-    ? historySnapshot.data!.docs.first.data() as Map<String, dynamic>?
-    : null;
-
-// Access each field based on your document structure
-String assignedBy = historyData?['assignedBy'] ?? 'N/A';
-String utilisateur = historyData?['utilisateur'] ?? 'N/A';
-Timestamp? assignmentTimestamp = historyData?['assignedDate'];
-String assignmentDate = assignmentTimestamp != null
-    ? "${assignmentTimestamp.toDate().day}/${assignmentTimestamp.toDate().month}/${assignmentTimestamp.toDate().year} à ${assignmentTimestamp.toDate().hour}:${assignmentTimestamp.toDate().minute}"
-    : 'N/A';
-
-
-                  // In ListView.builder, remove the FutureBuilder and directly access requestData fields
-return Card(
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(15),
-  ),
-  elevation: 5,
-  margin: const EdgeInsets.symmetric(vertical: 8.0),
-  child: ListTile(
-    leading: CircleAvatar(
-      backgroundColor: isAssigned ? Colors.green : Colors.orange,
-      child: Icon(
-        isAssigned ? Icons.check_circle : Icons.pending,
-        color: Colors.white,
-      ),
-    ),
-    title: Text(
-      requestData?['equipmentType'] ?? "Équipement non spécifié",
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-    subtitle: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 5),
-        Text(
-          "Demandeur: ${requestData?['name'] ?? "Inconnu"}",
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-        Text(
-          "Département: ${requestData?['department'] ?? "Inconnu"}",
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-        if (isAssigned)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 5),
-              Text(
-                "Assigné par: ${requestData?['assignedBy'] ?? 'N/A'}",
-                style: const TextStyle(fontSize: 14, color: Colors.blue),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                "Assigné à: ${requestData?['utilisateur'] ?? 'N/A'}",
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                "Date d'assignation: ${requestData?['assignedDate'] != null ? "${(requestData?['assignedDate'] as Timestamp).toDate().day}/${(requestData?['assignedDate'] as Timestamp).toDate().month}/${(requestData?['assignedDate'] as Timestamp).toDate().year} à ${(requestData?['assignedDate'] as Timestamp).toDate().hour}:${(requestData?['assignedDate'] as Timestamp).toDate().minute}" : 'N/A'}",
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-            ],
-          ),
-      ],
-    ),
-    trailing: Icon(
-      isAssigned ? Icons.done : Icons.hourglass_empty,
-      color: isAssigned ? Colors.green : Colors.orange,
-      size: 30,
-    ),
-    onTap: () {
-      // Handle tap action, e.g., navigate to details page
-    },
-  ),
-);
-
-                },
-              );
+              if (status == 'en_maintenance') {
+                // Maintenance request design
+                return _buildMaintenanceCard(requestData);
+              } else if (status == 'Available') {
+                // Available status design
+                return _buildAvailableCard(requestData);
+              } else if (status == 'Approved') {
+                // Approved status design
+                return _buildApprovedCard(requestData);
+              } else {
+                // Pending or default status design
+                return _buildPendingCard(requestData, status);
+              }
             },
           );
         },
       ),
     );
+  }
+
+  Widget _buildMaintenanceCard(Map<String, dynamic>? requestData) {
+    return Card(
+      color: Colors.lightBlue.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.blue,
+          child: const Icon(Icons.build, color: Colors.white),
+        ),
+        title: Text(
+          requestData?['equipmentType'] ?? "Équipement inconnu",
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Status: En maintenance"),
+            Text("Site: ${requestData?['site'] ?? "Inconnu"}"),
+            Text("Département: ${requestData?['department'] ?? "Inconnu"}"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvailableCard(Map<String, dynamic>? requestData) {
+    return Card(
+      color: Colors.green.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.green,
+          child: const Icon(Icons.done, color: Colors.white),
+        ),
+        title: Text(
+          requestData?['equipmentType'] ?? "Équipement inconnu",
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Status: Maintenance terminée"),
+            Text("Site: ${requestData?['site'] ?? "Inconnu"}"),
+            Text("Département: ${requestData?['department'] ?? "Inconnu"}"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildApprovedCard(Map<String, dynamic>? requestData) {
+    return Card(
+      color: Colors.lightGreen.shade100,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.lightGreen,
+          child: const Icon(Icons.check_circle, color: Colors.white),
+        ),
+        title: Text(
+          requestData?['equipmentType'] ?? "Équipement inconnu",
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Status: Approved"),
+            Text("Site: ${requestData?['site'] ?? "Inconnu"}"),
+            Text("Département: ${requestData?['department'] ?? "Inconnu"}"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingCard(Map<String, dynamic>? requestData, String status) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.orange,
+          child: const Icon(Icons.hourglass_empty, color: Colors.white),
+        ),
+        title: Text(
+          requestData?['equipmentType'] ?? "Équipement inconnu",
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Status: ${status.capitalize()}"),
+            Text("Site: ${requestData?['site'] ?? "Inconnu"}"),
+            Text("Département: ${requestData?['department'] ?? "Inconnu"}"),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    if (this.isEmpty) return this;
+    return '${this[0].toUpperCase()}${this.substring(1)}';
   }
 }

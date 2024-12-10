@@ -7,8 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
-import 'package:intl/intl.dart'; // Add this for date formatting
-
+import 'package:intl/intl.dart'; // For date formatting
 
 class ViewEquipmentDetailsPage extends StatefulWidget {
   final QueryDocumentSnapshot equipment;
@@ -29,6 +28,40 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
     super.initState();
     _checkBluetooth();
     _getBluetoothDevices();
+    _updateQrData();
+  }
+
+  /// Ensure `qr_data` contains only `serial_number`
+  Future<void> _updateQrData() async {
+    final equipmentData = widget.equipment.data() as Map<String, dynamic>?;
+
+    if (equipmentData == null) return;
+
+    final String? serialNumber = equipmentData['serial_number'];
+    final String? qrData = equipmentData['qr_data'];
+
+    // If `qr_data` does not match the `serial_number`, update it
+    if (serialNumber != null && qrData != serialNumber) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('equipment')
+            .doc(widget.equipment.id)
+            .update({'qr_data': serialNumber});
+
+        setState(() {
+          // Update locally for the UI
+          widget.equipment.reference.update({'qr_data': serialNumber});
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("QR data updated to serial number.")),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to update QR data: $e")),
+        );
+      }
+    }
   }
 
   Future<void> _checkBluetooth() async {
@@ -104,96 +137,60 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
     );
   }
 
-  // Truncate processor information based on pattern
-  String _getTruncatedProcessor(String? processor) {
-    if (processor == null) return 'N/A';
-    final RegExp regex = RegExp(r'i\d-\d+HQ.*'); // Example regex pattern for processor type
-    final match = regex.firstMatch(processor);
-    return match != null ? match.group(0)! : processor;
-  }
-
   Future<void> _downloadQRCode(String? qrData, BuildContext context) async {
-  if (qrData == null || qrData.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("QR code data is not available")),
-    );
-    return;
-  }
-
-  final status = await Permission.storage.request();
-  if (status.isGranted) {
-    try {
-      final qrValidationResult = QrValidator.validate(
-        data: qrData,
-        version: QrVersions.auto,
-        errorCorrectionLevel: QrErrorCorrectLevel.H,
+    if (qrData == null || qrData.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("QR code data is not available")),
       );
+      return;
+    }
 
-      if (qrValidationResult.status == QrValidationStatus.valid) {
-        final qrPainter = QrPainter.withQr(
-          qr: qrValidationResult.qrCode!,
-          color: const Color(0xFF000000),
-          gapless: true,
-          emptyColor: Colors.white,
+    final status = await Permission.storage.request();
+    if (status.isGranted) {
+      try {
+        final qrValidationResult = QrValidator.validate(
+          data: qrData,
+          version: QrVersions.auto,
+          errorCorrectionLevel: QrErrorCorrectLevel.H,
         );
 
-        // Generate the QR code image without padding
-        const double qrImageSize = 400.0; // Larger QR code for better readability
-        final ui.Image qrImage = await qrPainter.toImage(qrImageSize.toDouble());
+        if (qrValidationResult.status == QrValidationStatus.valid) {
+          final qrPainter = QrPainter.withQr(
+            qr: qrValidationResult.qrCode!,
+            color: const Color(0xFF000000),
+            gapless: true,
+            emptyColor: Colors.white,
+          );
 
-        // Define the padding
-        const int padding = 20;
-        final int paddedWidth = qrImage.width + padding * 2;
-        final int paddedHeight = qrImage.height + padding * 2;
+          final ui.Image qrImage = await qrPainter.toImage(400);
 
-        // Add padding around the QR code
-        final ui.PictureRecorder recorder = ui.PictureRecorder();
-        final Canvas canvas = Canvas(recorder, Rect.fromPoints(
-          const Offset(0, 0),
-          Offset(paddedWidth.toDouble(), paddedHeight.toDouble()),
-        ));
-        
-        // Fill background with white
-        canvas.drawRect(
-          Rect.fromLTWH(0, 0, paddedWidth.toDouble(), paddedHeight.toDouble()),
-          Paint()..color = Colors.white,
-        );
-        
-        // Draw the QR code centered with padding
-        canvas.drawImage(qrImage, Offset(padding.toDouble(), padding.toDouble()), Paint());
+          final ByteData? byteData = await qrImage.toByteData(format: ui.ImageByteFormat.png);
+          final Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-        // Convert the canvas with padding to an image
-        final ui.Image finalImage = await recorder.endRecording().toImage(paddedWidth, paddedHeight);
-        final ByteData? byteData = await finalImage.toByteData(format: ui.ImageByteFormat.png);
-        final Uint8List pngBytes = byteData!.buffer.asUint8List();
+          final String timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+          final directory = await getExternalStorageDirectory();
+          final file = File('${directory!.path}/qr_code_$timestamp.png');
+          await file.writeAsBytes(pngBytes);
 
-        // Save the image
-        final String timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-        final directory = await getExternalStorageDirectory();
-        final file = File('${directory!.path}/qr_code_$timestamp.png');
-        await file.writeAsBytes(pngBytes);
-
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("QR Code saved to ${file.path}")),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to generate QR Code")),
+          );
+        }
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("QR Code saved to ${file.path}")),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to generate QR Code")),
+          SnackBar(content: Text("Error saving QR code: $e")),
         );
       }
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error saving QR code: $e")),
+        const SnackBar(content: Text("Storage permission denied")),
       );
     }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Storage permission denied")),
-    );
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +199,7 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Equipment Details"),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Color(0xFF467F67),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -213,18 +210,18 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
               _buildDetailCard("Nom", equipmentData?['name']),
               _buildDetailCard("Address de messagerie", equipmentData?['email']),
               _buildDetailCard("Type", equipmentData?['type']),
-              _buildDetailCard("marque", equipmentData?['brand']),
-              _buildDetailCard("N.Serie", equipmentData?['serial_number']),
-              _buildDetailCard("Processor", _getTruncatedProcessor(equipmentData?['processor'])),
-              _buildDetailCard("Os", equipmentData?['os']),
-              _buildDetailCard("RAM(Gb)", equipmentData?['ram']),
-              _buildDetailCard("souris sans fil", equipmentData?['wireless_mouse']),
-              _buildDetailCard("ecran extern", equipmentData?['external_screen']),
-              _buildDetailCard("marque d'ecran", equipmentData?['screen_brand']),
-              _buildDetailCard("S.N d'ecran", equipmentData?['screen_serial_number']),
-              _buildDetailCard("numero d'inventaire ECR", equipmentData?['inventory_number_ecr']),
-              _buildDetailCard("Departement/Service", equipmentData?['department']),
-              _buildDetailCard("numero d'inventaire LPT", equipmentData?['inventory_number_lpt']),
+              _buildDetailCard("Marque", equipmentData?['brand']),
+              _buildDetailCard("N° de Série", equipmentData?['serial_number']),
+              _buildDetailCard("Processeur", equipmentData?['processor']),
+              _buildDetailCard("Système d'exploitation", equipmentData?['os']),
+              _buildDetailCard("RAM (Go)", equipmentData?['ram']),
+              _buildDetailCard("Stockage (Go)", equipmentData?['storage']),
+              _buildDetailCard("Souris sans fil", equipmentData?['wireless_mouse']),
+              _buildDetailCard("Écran externe", equipmentData?['external_screen']),
+              _buildDetailCard("Marque d'écran", equipmentData?['screen_brand']),
+              _buildDetailCard("N° Série écran", equipmentData?['screen_serial_number']),
+              _buildDetailCard("N° d'inventaire ECR", equipmentData?['inventory_number_ecr']),
+              _buildDetailCard("N° d'inventaire LPT", equipmentData?['inventory_number_lpt']),
               const SizedBox(height: 20),
               _buildQRCode(equipmentData?['qr_data']),
               const SizedBox(height: 20),
@@ -235,7 +232,7 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: _printEquipmentDetails,
-                child: const Text("Print qr code"),
+                child: const Text("Print QR Code"),
               ),
             ],
           ),
@@ -291,5 +288,3 @@ class _ViewEquipmentDetailsPageState extends State<ViewEquipmentDetailsPage> {
     );
   }
 }
-
-

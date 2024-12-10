@@ -34,12 +34,33 @@ class _EditEquipmentPageState extends State<EditEquipmentPage> {
   late Map<String, TextEditingController> _controllers;
   final encryptionHelper = EncryptionHelper('S3cur3P@ssw0rd123!'); // Encryption password
 
+  final List<String> allowedFields = [
+    'start_time',
+    'end_time',
+    'site',
+    'name',
+    'location',
+    'user',
+    'processor',
+    'os',
+    'ram',
+    'email',
+    'brand',
+    'department',
+    'model',
+    'reference',
+    'storage',
+    'wireless_mouse',
+  ]; 
+
   @override
   void initState() {
     super.initState();
     _controllers = {};
     widget.data.forEach((key, value) {
-      _controllers[key] = TextEditingController(text: value.toString());
+      if (allowedFields.contains(key)) {
+        _controllers[key] = TextEditingController(text: value.toString());
+      }
     });
   }
 
@@ -57,19 +78,9 @@ class _EditEquipmentPageState extends State<EditEquipmentPage> {
       updatedData[key] = controller.text;
     });
 
-    // Include the document ID in the updated data
-    updatedData['document_id'] = widget.documentId;
-
-    // Generate new QR data with the updated values
-    String generatedQRData = jsonEncode(updatedData);
-    String encryptedQRData = encryptionHelper.encryptText(generatedQRData); // Encrypt the QR data
-
     try {
-      // Update the Firestore document with the new data
-      await FirebaseFirestore.instance.collection('equipment').doc(widget.documentId).update(updatedData);
 
-      // Also update the QR data field with the encrypted QR string
-      await FirebaseFirestore.instance.collection('equipment').doc(widget.documentId).update({'qr_data': encryptedQRData});
+      await FirebaseFirestore.instance.collection('equipment').doc(widget.documentId).update(updatedData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Data updated successfully!")),
@@ -80,6 +91,39 @@ class _EditEquipmentPageState extends State<EditEquipmentPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to update data: $e")),
       );
+    }
+  }
+
+  Future<void> _selectDateTime(
+      BuildContext context, TextEditingController controller) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: controller.text.isNotEmpty
+          ? DateTime.parse(controller.text)
+          : DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(
+            controller.text.isNotEmpty
+                ? DateTime.parse(controller.text)
+                : DateTime.now()),
+      );
+
+      if (pickedTime != null) {
+        final DateTime fullDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+        controller.text = fullDateTime.toIso8601String();
+      }
     }
   }
 
@@ -100,10 +144,9 @@ class _EditEquipmentPageState extends State<EditEquipmentPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Build text fields for each entry except document_id
-              for (var entry in widget.data.entries)
-                if (entry.key != 'document_id') // Skip the document_id field
-                  buildTextField(entry.key, _controllers[entry.key]!),
+              for (var field in allowedFields)
+                if (_controllers.containsKey(field))
+                  buildTextField(field, _controllers[field]!, context),
             ],
           ),
         ),
@@ -111,13 +154,36 @@ class _EditEquipmentPageState extends State<EditEquipmentPage> {
     );
   }
 
-  Widget buildTextField(String label, TextEditingController controller) {
+  Widget buildTextField(
+      String label, TextEditingController controller, BuildContext context) {
+
+
+    if (label == 'start_time' || label == 'end_time') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: GestureDetector(
+          onTap: () => _selectDateTime(context, controller),
+          child: AbsorbPointer(
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: label.replaceAll('_', ' ').toUpperCase(),
+                border: const OutlineInputBorder(),
+                suffixIcon: const Icon(Icons.calendar_today), // Calendar icon
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Default text field for other fields
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: TextField(
         controller: controller,
         decoration: InputDecoration(
-          labelText: label,
+          labelText: label.replaceAll('_', ' ').toUpperCase(),
           border: const OutlineInputBorder(),
         ),
       ),

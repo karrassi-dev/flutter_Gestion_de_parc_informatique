@@ -1,24 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:my_flutter_app/admincrud/qr_data_display_page.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'dart:convert';
-import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:crypto/crypto.dart';
-
-class EncryptionHelper {
-  final encrypt.Key key;
-  final encrypt.IV iv;
-
-  EncryptionHelper(String password)
-      : key = encrypt.Key.fromUtf8(md5.convert(utf8.encode(password)).toString()),
-        iv = encrypt.IV.fromUtf8('16-Bytes---IVKey'); // Consistent IV for decryption
-
-  String decryptText(String encryptedText) {
-    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-    final decrypted = encrypter.decrypt64(encryptedText, iv: iv);
-    return decrypted;
-  }
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'qr_data_display_page.dart'; // Ensure this import is correct
 
 class QRCodeScannerPage extends StatefulWidget {
   const QRCodeScannerPage({Key? key}) : super(key: key);
@@ -31,7 +14,6 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> with WidgetsBindi
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   String? scanResult;
-  final encryptionHelper = EncryptionHelper('S3cur3P@ssw0rd123!'); // Encryption password
 
   @override
   void initState() {
@@ -81,8 +63,22 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> with WidgetsBindi
             flex: 1,
             child: Center(
               child: scanResult == null
-                  ? Text('Scan a QR code')
-                  : Container(),
+                  ? const Text('Scan a QR code')
+                  : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Scanned Serial Number: $scanResult',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text('View Details'),
+                    onPressed: () => _fetchEquipmentDetails(context, scanResult!),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -97,42 +93,46 @@ class _QRCodeScannerPageState extends State<QRCodeScannerPage> with WidgetsBindi
         scanResult = scanData.code;
         if (scanResult != null) {
           controller.pauseCamera();
-          _showScannedData(context, scanResult!);
         }
       });
     });
   }
 
-  void _showScannedData(BuildContext context, String encryptedData) {
+  void _fetchEquipmentDetails(BuildContext context, String serialNumber) async {
     try {
-      // Decrypt the scanned QR data
-      final decryptedData = encryptionHelper.decryptText(encryptedData);
-      // Parse the decrypted JSON string into a map
-      final decodedData = _parseQrData(decryptedData);
+      // Query Firestore to find the equipment with the scanned serial number
+      final QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('equipment')
+          .where('serial_number', isEqualTo: serialNumber)
+          .get();
 
-      // Navigate to QrDataDisplayPage with decrypted and decoded data
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => QrDataDisplayPage(data: decodedData),
-        ),
-      ).then((_) {
-        // Reset scan result and resume camera after returning from QrDataDisplayPage
-        setState(() {
-          scanResult = null;
+      if (snapshot.docs.isNotEmpty) {
+        // Get the first matching document
+        final document = snapshot.docs.first;
+
+        // Pass the equipment data to QrDataDisplayPage
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => QrDataDisplayPage(data: document.data() as Map<String, dynamic>),
+          ),
+        ).then((_) {
+          // Resume camera after returning
+          controller?.resumeCamera();
         });
+      } else {
+        // Show a message if no equipment is found
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No equipment found for this serial number.')),
+        );
         controller?.resumeCamera();
-      });
+      }
     } catch (e) {
-      // Show an error if decryption fails
+      // Handle any errors during the query
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to decrypt QR data: $e")),
+        SnackBar(content: Text('Error fetching equipment details: $e')),
       );
       controller?.resumeCamera();
     }
-  }
-
-  Map<String, dynamic> _parseQrData(String data) {
-    return Map<String, dynamic>.from(jsonDecode(data));
   }
 }

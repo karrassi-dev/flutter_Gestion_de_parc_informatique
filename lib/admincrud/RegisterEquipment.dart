@@ -3,33 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:screenshot/screenshot.dart';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
-import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:crypto/crypto.dart';
-
-class EncryptionHelper {
-  final encrypt.Key key;
-  final encrypt.IV iv;
-
-  EncryptionHelper(String password)
-      : key = encrypt.Key.fromUtf8(md5.convert(utf8.encode(password)).toString()),
-        iv = encrypt.IV.fromUtf8('16-Bytes---IVKey'); // Fixed IV for consistent encryption/decryption
-
-  String encryptText(String text) {
-    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-    final encrypted = encrypter.encrypt(text, iv: iv);
-    return encrypted.base64;
-  }
-
-  String decryptText(String encryptedText) {
-    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-    final decrypted = encrypter.decrypt64(encryptedText, iv: iv);
-    return decrypted;
-  }
-}
 
 class RegisterEquipment extends StatefulWidget {
   const RegisterEquipment({super.key});
@@ -71,7 +47,6 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
   String? qrData;
 
   final CollectionReference equipmentCollection = FirebaseFirestore.instance.collection('equipment');
-  final encryptionHelper = EncryptionHelper('S3cur3P@ssw0rd123!'); // Encryption password
 
   final List<String> typeOptions = [
     'Imprimante',
@@ -90,6 +65,36 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
     'laptop',
     'Notebook'
   ];
+
+  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        controller.text = picked.toIso8601String();
+      });
+    }
+  }
+
+  Future<void> _downloadQRCode() async {
+    if (qrData == null) return;
+
+    final Uint8List? imageBytes = await _screenshotController.capture(pixelRatio: 1.0);
+    if (imageBytes != null) {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/qr_code.png';
+      final file = File(filePath);
+      await file.writeAsBytes(imageBytes);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("QR Code downloaded to $filePath")),
+      );
+    }
+  }
 
   Future<void> registerEquipment() async {
     if (_formKey.currentState!.validate()) {
@@ -123,22 +128,18 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
         };
 
         try {
-          // Save equipment data in Firestore
-          DocumentReference newDocRef = await equipmentCollection.add(equipmentData);
+          // Use serial_number as the document ID
+          String serialNumber = serialNumberController.text;
 
-          // Add the document ID to the equipment data for QR code
-          equipmentData['document_id'] = newDocRef.id;
+          // Save equipment data in Firestore with serial_number as document ID
+          await equipmentCollection.doc(serialNumber).set(equipmentData);
 
-          // Generate QR Data and Encrypt it
-          String qrDataPlain = jsonEncode(equipmentData);
-          String encryptedQRData = encryptionHelper.encryptText(qrDataPlain);
-
-          // Update the Firestore document with encrypted QR data
-          await newDocRef.update({'qr_data': encryptedQRData});
+          // Generate QR Data for Serial Number only
+          String qrDataPlain = serialNumber;
 
           // Update local state for QR code display
           setState(() {
-            qrData = encryptedQRData;
+            qrData = qrDataPlain;
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -152,22 +153,6 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
           );
         }
       }
-    }
-  }
-
-  Future<void> _downloadQRCode() async {
-    if (qrData == null) return;
-
-    final Uint8List? imageBytes = await _screenshotController.capture(pixelRatio: 1.0);
-    if (imageBytes != null) {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/qr_code.png';
-      final file = File(filePath);
-      await file.writeAsBytes(imageBytes);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("QR Code downloaded to $filePath")),
-      );
     }
   }
 
@@ -222,22 +207,28 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
     }
   }
 
-  Widget buildTextField(TextEditingController controller, String hintText, IconData icon, {bool required = true}) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: hintText,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+  Widget buildTextField(TextEditingController controller, String hintText, IconData icon, {bool required = true, bool isDatePicker = false}) {
+    return GestureDetector(
+      onTap: isDatePicker ? () => _selectDate(context, controller) : null,
+      child: AbsorbPointer(
+        absorbing: isDatePicker,
+        child: TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: hintText,
+            prefixIcon: Icon(icon),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+          validator: (value) {
+            if (required && (value == null || value.isEmpty)) {
+              return 'Please enter $hintText';
+            }
+            return null;
+          },
         ),
       ),
-      validator: (value) {
-        if (required && (value == null || value.isEmpty)) {
-          return 'Please enter $hintText';
-        }
-        return null;
-      },
     );
   }
 
@@ -296,9 +287,9 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  buildTextField(startTimeController, "Heure de début", Icons.access_time),
+                  buildTextField(startTimeController, "Heure de début", Icons.access_time, isDatePicker: true),
                   const SizedBox(height: 20),
-                  buildTextField(endTimeController, "Heure de fin", Icons.access_time_filled),
+                  buildTextField(endTimeController, "Heure de fin", Icons.access_time_filled, isDatePicker: true),
                   const SizedBox(height: 20),
                   buildTextField(emailController, "Adresse de messagerie", Icons.email),
                   const SizedBox(height: 20),
@@ -344,7 +335,7 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
                     buildCheckbox(
                       "Avoir un écran externe",
                       _isAdditionalFieldsVisible,
-                      (bool? value) {
+                          (bool? value) {
                         setState(() {
                           _isAdditionalFieldsVisible = value!;
                         });
@@ -378,41 +369,44 @@ class _RegisterEquipmentState extends State<RegisterEquipment> {
               padding: const EdgeInsets.only(left: 38.0),
               child: FloatingActionButton(
                 onPressed: previousPage,
-                child: const Icon(Icons.arrow_back),
+                backgroundColor: Color(0xff012F97),
+                child: const Icon(Icons.arrow_back,color: Colors.white),
+                
               ),
             ),
           Padding(
             padding: const EdgeInsets.only(left: 38.0),
             child: FloatingActionButton(
               onPressed: currentPageIndex == 2 ? registerEquipment : nextPage,
-              child: currentPageIndex == 2 ? const Icon(Icons.save) : const Icon(Icons.arrow_forward),
+              child: currentPageIndex == 2 ? const Icon(Icons.save,color: Colors.white,) : const Icon(Icons.arrow_forward,color: Colors.white,),
+              backgroundColor: Color(0xff012F97),
             ),
           ),
         ],
       ),
       bottomNavigationBar: qrData != null
           ? Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Screenshot(
-                    controller: _screenshotController,
-                    child: QrImageView(
-                      data: qrData!,
-                      version: QrVersions.auto,
-                      size: 200.0,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: _downloadQRCode,
-                    icon: const Icon(Icons.download),
-                    label: const Text("Download QR Code"),
-                  ),
-                ],
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Screenshot(
+              controller: _screenshotController,
+              child: QrImageView(
+                data: qrData!,
+                version: QrVersions.auto,
+                size: 200.0,
               ),
-            )
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _downloadQRCode,
+              icon: const Icon(Icons.download),
+              label: const Text("Download QR Code"),
+            ),
+          ],
+        ),
+      )
           : null,
     );
   }

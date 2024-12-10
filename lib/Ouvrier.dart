@@ -1,25 +1,63 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_flutter_app/login.dart';
-import 'employe_actions/MyRequestsPage.dart';
-import 'admincrud/QRCodeScannerPage.dart';
-import 'employe_actions/EmployeRequestPage.dart';
-import 'employe_actions/MaintenanceRequestPage.dart'; // Import your maintenance page
+import 'package:my_flutter_app/employe_actions/MyRequestsPage.dart';
+import 'package:my_flutter_app/admincrud/QRCodeScannerPage.dart';
+import './ouvrier_action/OuvrierRequestsPage.dart';
+import './ouvrier_action/OuvrierMaintenanceRequestPage.dart';
 
-class Employe extends StatelessWidget {
-  final CollectionReference equipmentCollection =
-      FirebaseFirestore.instance.collection('equipment');
+class Ouvrier extends StatelessWidget {
+  const Ouvrier({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Check the authentication state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (!snapshot.hasData) {
+          // Redirect to login page if user is not authenticated
+          return LoginPage();
+        }
+        // User is authenticated, show the Ouvrier page
+        return const OuvrierPageContent();
+      },
+    );
+  }
+}
+
+class OuvrierPageContent extends StatelessWidget {
+  const OuvrierPageContent({super.key});
+
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Logged out successfully!"),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Demande Équipement"),
+        title: const Text('Ouvrier Page'),
         backgroundColor: Color(0xFF467F67),
         actions: [
           IconButton(
-            onPressed: () => _logout(context), 
+            onPressed: () => _logout(context),
             icon: const Icon(Icons.logout),
             tooltip: "Logout",
             color: Colors.white,
@@ -47,11 +85,11 @@ class Employe extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                "Actions Employé",
+                "Actions Ouvrier",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xff012F97),
+                  color: Colors.black87,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -61,7 +99,7 @@ class Employe extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => EmployRequestsPage(),
+                      builder: (context) => OuvrierRequestPage(),
                     ),
                   );
                 },
@@ -115,13 +153,12 @@ class Employe extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              // New Maintenance Request Button
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => MaintenanceRequestPage(), // Navigate to Maintenance Page
+                      builder: (context) => OuvrierMaintenanceRequestPage(),
                     ),
                   );
                 },
@@ -146,22 +183,6 @@ class Employe extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Logged out successfully!"),
-        duration: Duration(seconds: 2),
-      ),
-    );
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LoginPage(),
       ),
     );
   }

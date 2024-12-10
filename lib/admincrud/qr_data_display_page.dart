@@ -10,12 +10,31 @@ class QrDataDisplayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // List of fields to display
+    final List<String> displayedFields = [
+      'start_time',
+      'end_time',
+      'site',
+      'name',
+      'location',
+      'user',
+      'processor',
+      'os',
+      'ram',
+      'email',
+      'brand',
+      'department',
+      'model',
+      'reference',
+      'storage',
+      'wireless_mouse',
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Scanned Data"),
         backgroundColor: Colors.deepPurple,
         actions: [
-          // Check the user's role
           FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
                 .collection('users') // Ensure this is the correct collection
@@ -23,28 +42,42 @@ class QrDataDisplayPage extends StatelessWidget {
                 .get(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator(); // Show loading indicator while fetching user data
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                ); // Show loading indicator while fetching user data
               }
 
               if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-                return SizedBox.shrink(); // Hide the icon if there's an error or no data
+                return const SizedBox.shrink(); // Hide the icon if there's an error or no data
               }
 
               // Safely retrieve role
-              String? userRole = snapshot.data!.get('role');
+              final String? userRole = snapshot.data!.get('role');
 
               // Show edit icon only if user is admin
               if (userRole == "Admin") {
                 return IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: () {
-                    // Navigate to the edit page with document ID
+                    final String? serialNumber = data['serial_number']; // Use serial_number
+                    if (serialNumber == null) {
+                      // Show error message if serial_number is missing
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Error: Serial number is missing.")),
+                      );
+                      return;
+                    }
+
+                    // Navigate to the edit page with serial_number
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => EditEquipmentPage(
                           data: data,
-                          documentId: data['document_id'], // Pass the document ID
+                          documentId: serialNumber, // Pass serial_number as document ID
                         ),
                       ),
                     );
@@ -52,7 +85,7 @@ class QrDataDisplayPage extends StatelessWidget {
                 );
               }
 
-              return SizedBox.shrink(); // Do not show icon for non-admin users
+              return const SizedBox.shrink(); // Do not show icon for non-admin users
             },
           ),
         ],
@@ -62,12 +95,10 @@ class QrDataDisplayPage extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: data.entries.map((entry) {
-              // Skip displaying document_id
-              if (entry.key == 'document_id') return SizedBox.shrink(); // Do not display
-
-              return _buildDetailCard(entry.key, entry.value.toString());
-            }).toList(),
+            children: displayedFields
+                .where((field) => data.containsKey(field)) // Only include specified fields
+                .map((field) => _buildDetailCard(field, data[field]?.toString() ?? 'N/A'))
+                .toList(),
           ),
         ),
       ),

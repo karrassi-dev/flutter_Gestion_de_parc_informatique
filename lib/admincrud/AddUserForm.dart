@@ -91,6 +91,7 @@ class _AddUserFormState extends State<AddUserForm> {
                 items: const [
                   DropdownMenuItem(value: 'Admin', child: Text('Admin')),
                   DropdownMenuItem(value: 'employe', child: Text('Employe')),
+                  DropdownMenuItem(value: 'Ouvrier', child: Text('Ouvrier')),
                 ],
                 onChanged: (value) {
                   setState(() {
@@ -151,7 +152,7 @@ class _AddUserFormState extends State<AddUserForm> {
               ElevatedButton(
                 onPressed: _addUser,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
+                  backgroundColor: Color(0xff012F97),
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18.0),

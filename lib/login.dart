@@ -8,7 +8,7 @@ import 'register.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'services/sendLoginData.dart';
-
+import 'package:my_flutter_app/Ouvrier.dart';
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -78,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
                 borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
               ),
-              fillColor: Colors.purple.withOpacity(0.1),
+              fillColor: Colors.grey.withOpacity(0.1),
               filled: true,
               prefixIcon: const Icon(Icons.email),
             ),
@@ -102,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
                 borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
               ),
-              fillColor: Colors.purple.withOpacity(0.1),
+              fillColor: Colors.grey.withOpacity(0.1),
               filled: true,
               prefixIcon: const Icon(Icons.lock),
               suffixIcon: IconButton(
@@ -137,11 +137,11 @@ class _LoginPageState extends State<LoginPage> {
             style: ElevatedButton.styleFrom(
               shape: const StadiumBorder(),
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: Colors.purple,
+              backgroundColor: Color(0xff012F97),
             ),
             child: const Text(
               "Login",
-              style: TextStyle(fontSize: 20, color: Colors.black),
+              style: TextStyle(fontSize: 20, color: Colors.white),
             ),
           ),
         ],
@@ -154,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
       onPressed: () {},
       child: const Text(
         "Forgot password?",
-        style: TextStyle(color: Colors.purple),
+        style: TextStyle(color: Colors.red),
       ),
     );
   }
@@ -173,45 +173,51 @@ class _LoginPageState extends State<LoginPage> {
           },
           child: const Text(
             "Sign Up",
-            style: TextStyle(color: Colors.purple),
+            style: TextStyle(color: Color(0xff199942)),
           ),
         )
       ],
     );
   }
 
-  void route() async {
-    User? user = _auth.currentUser;
-    if (user != null) {
-      try {
-        DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        if (documentSnapshot.exists) {
-          if (documentSnapshot.get('role') == "Admin") {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => Admin()),
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => Employe()),
-            );
-          }
-        } else {
-          print('Document does not exist in the database');
+void route() async {
+  User? user = _auth.currentUser;
+  if (user != null) {
+    try {
+      DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (documentSnapshot.exists) {
+        if (documentSnapshot.get('role') == "Admin") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => Admin()),
+          );
+        } else if (documentSnapshot.get('role') == "employe") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => Employe()),
+          );
+        } else if (documentSnapshot.get('role') == "Ouvrier") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => Ouvrier()),
+          );
         }
-      } catch (e) {
-        print('Error fetching user data: $e');
-      } finally {
-        setState(() {
-          visible = false;
-        });
+      } else {
+        print('Document does not exist in the database');
       }
+    } catch (e) {
+      print('Error fetching user data: $e');
+    } finally {
+      setState(() {
+        visible = false;
+      });
     }
   }
+}
+
 
   void signIn(String email, String password) async {
     try {

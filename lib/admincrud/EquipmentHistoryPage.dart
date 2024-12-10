@@ -45,7 +45,7 @@ class _EquipmentHistoryPageState extends State<EquipmentHistoryPage> {
             ElevatedButton(
               onPressed: selectedEquipmentId != null ? showEquipmentHistory : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
+                backgroundColor: Color(0xff199942),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -186,7 +186,7 @@ class _EquipmentHistoryDetailPageState extends State<EquipmentHistoryDetailPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text("Equipment History Details"),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Color(0xFF467F67),
         elevation: 4,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

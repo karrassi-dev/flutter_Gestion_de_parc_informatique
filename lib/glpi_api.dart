@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'Ouvrier.dart';
 import 'dart:convert';
 
 import 'email_service.dart';
@@ -77,6 +78,8 @@ class _MyAppState extends State<MyApp> {
               return Admin();
             } else if (role == 'employe') {
               return Employe();
+            } else if (role == 'Ouvrier') {
+              return Ouvrier();
             }
           }
           return LoginPage();

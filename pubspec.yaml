@@ -67,6 +67,8 @@ dependencies:
   flutter_svg: ^2.0.11
   qr: ^3.0.2
   barcode: ^2.2.8
+  file_picker: ^8.1.4
+  firebase_storage: ^12.3.7
   
   
 

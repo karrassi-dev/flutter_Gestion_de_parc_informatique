@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'UpdateSpecificEquipmentPage.dart';
 import 'ViewEquipmentDetailsPage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class UpdaterEquipment extends StatefulWidget {
   @override
@@ -20,7 +22,7 @@ class _UpdaterEquipmentState extends State<UpdaterEquipment> {
         //   "Update Equipment",
         //   style: TextStyle(fontWeight: FontWeight.bold),
         // ),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Color(0xFF467F67),
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(20),
           child: Padding(
@@ -108,7 +110,7 @@ class _UpdaterEquipmentState extends State<UpdaterEquipment> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Confirm Deletion"),
-          content: const Text("Are you sure you want to delete this equipment?"),
+          content: const Text("Are you sure you want to move this equipment to the recycle bin?"),
           actions: [
             TextButton(
               onPressed: () {
@@ -117,18 +119,37 @@ class _UpdaterEquipmentState extends State<UpdaterEquipment> {
               child: const Text("Cancel"),
             ),
             ElevatedButton(
-              onPressed: () {
-                FirebaseFirestore.instance.collection('equipment').doc(equipmentId).delete().then((_) {
+              onPressed: () async {
+                try {
+                  // Fetch the document data
+                  DocumentSnapshot documentSnapshot = await equipmentCollection.doc(equipmentId).get();
+                  Map<String, dynamic> equipmentData = documentSnapshot.data() as Map<String, dynamic>;
+
+                  // Add the document to the recycle_bin collection
+                  await FirebaseFirestore.instance.collection('recycle_bin').doc(equipmentData['serial_number']).set({
+                    ...equipmentData,
+                    'Deleted_By': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+                    'Deleted_Date': FieldValue.serverTimestamp(),
+                  });
+
+                  // Remove the document from the equipment collection
+                  await equipmentCollection.doc(equipmentId).delete();
+
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Equipment deleted successfully!")),
+                    const SnackBar(content: Text("Equipment moved to recycle bin successfully!")),
                   );
-                });
+                } catch (error) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error moving equipment to recycle bin: $error")),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: const Text("Delete"),
+              child: const Text("Confirm"),
             ),
           ],
         );
@@ -154,7 +175,6 @@ class EquipmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic>? equipmentData = equipment.data() as Map<String, dynamic>?;
-
     return Card(
       elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -189,6 +209,8 @@ class EquipmentCard extends StatelessWidget {
               style: const TextStyle(fontSize: 16),
               overflow: TextOverflow.ellipsis,
             ),
+
+
             const SizedBox(height: 8),
             Text(
               "Serial Number: ${equipmentData?['serial_number'] ?? ''}",
@@ -202,8 +224,8 @@ class EquipmentCard extends StatelessWidget {
               children: [
                 ElevatedButton.icon(
                   onPressed: onViewDetailsPressed,
-                  icon: const Icon(Icons.visibility, size: 18),
-                  label: const Text("Details"),
+                  icon: const Icon(Icons.visibility, size: 18,color: Color(0xff012F97)),
+                  label: const Text("Details",style: TextStyle(color: Color(0xff012F97))),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.withOpacity(0.1),
                     shape: RoundedRectangleBorder(
@@ -214,8 +236,8 @@ class EquipmentCard extends StatelessWidget {
                 ),
                 ElevatedButton.icon(
                   onPressed: onUpdatePressed,
-                  icon: const Icon(Icons.edit, size: 18),
-                  label: const Text("Modifier"),
+                  icon: const Icon(Icons.edit, size: 18,color: Color(0xff012F97)),
+                  label: const Text("Modifier",style: TextStyle(color: Color(0xff012F97))),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.withOpacity(0.1),
                     shape: RoundedRectangleBorder(
@@ -226,8 +248,8 @@ class EquipmentCard extends StatelessWidget {
                 ),
                 ElevatedButton.icon(
                   onPressed: onDeletePressed,
-                  icon: const Icon(Icons.delete, size: 18),
-                  label: const Text("Supp"),
+                  icon: const Icon(Icons.delete, size: 18,color: Colors.red),
+                  label: const Text("Supp",style: TextStyle(color: Colors.red)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.withOpacity(0.1),
                     shape: RoundedRectangleBorder(

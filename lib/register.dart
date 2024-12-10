@@ -16,11 +16,12 @@ class _RegisterState extends State<Register> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmpassController = TextEditingController();
+
   bool _isObscure = true;
   bool _isObscure2 = true;
   bool showProgress = false;
 
-  var options = ['employee', 'Admin'];
+  var options = ['employee', 'Admin', 'Ouvrier'];
   var _currentItemSelected = "employee";
   var role = "employee";
 
